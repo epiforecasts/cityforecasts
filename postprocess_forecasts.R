@@ -7,6 +7,7 @@ library(cmdstanr)
 library(lubridate)
 library(purrr)
 library(tidyr)
+library(ggplot2)
 library(blogdown)
 
 list.files(file.path("R"), full.names = TRUE) |>
