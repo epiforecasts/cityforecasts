@@ -1,7 +1,7 @@
 forecast_date = "2025-02-18" # Date that the forecasts are actually submitted
 reference_date = "2025-02-22" # Saturday following the forecast date
 team_name = "epiforecasts"
-model_name = "dyngamvar"
+model_name = "dyngam"
 filepath_forecasts = "test_cityforecasts" # replace with "cityforecasts" for real submissions
 model_filename = ["var_mod_pois", "var_mod_beta"]
 targets = ["ILI ED visits", "Flu ED visits pct"]
