@@ -30,7 +30,33 @@ if (!is.na(parsed_args$config)) {
 # Will want to put these in functions but for now just do everything
 # in a script
 
-raw_data <- read.csv(config$data_url[index])
+raw_data_all <- read.csv(config$data_url[index])
+# hardcoding this in for now bc can't get filtering from variables to work
+# see below
+
+# this_raw_data <- raw_data |>
+#   filter(location %in%
+#     config$locs_list[[{{config$regions_to_fit[index]}}]])\
+
+if (config$regions_to_fit[index] == "NYC") {
+  raw_data <- filter(
+    raw_data_all,
+    location %in%
+      c(
+        "Bronx", "Brooklyn", "Manhattan", "NYC",
+        "Queens", "Staten Island", "Unknown"
+      )
+  )
+} else if (config$regions_to_fit[index] == "TX") {
+  raw_data <- filter(
+    raw_data_all,
+    location %in%
+      c(
+        "San Antonio", "Dallas", "El Paso",
+        "Houston", "Austin"
+      )
+  )
+}
 
 # Set up filepaths for saving data and figs -------------------------------
 fp_figs <- file.path(
@@ -66,27 +92,6 @@ if (isTRUE(config$data_format_type[index] == "NYC_ED_daily_asof") && config$targ
     rename(location = Dim1Value) |>
     select(date, count, location, year, week, day_of_week)
 
-  if (isTRUE(config$use_historical_data[index])) {
-    old_data_raw <- read.csv(config$historical_data_url)
-    old_data_formatted <- old_data_raw |>
-      mutate(
-        date = as.Date(Date, format = "%m/%d/%Y") + years(2000),
-        obs_data = as.integer(X),
-        # Eventually we will want to scale these (compute z scores) but leave
-        # as is for now
-        year = year(date),
-        week = week(date),
-        day_of_week = wday(date)
-      ) |>
-      filter(
-        Dim2Value == "All age groups",
-        date < min(data_formatted$date)
-      ) |>
-      rename(location = Dim1Value) |>
-      select(date, count, location, year, week, day_of_week)
-
-    data_formatted <- bind_rows(old_data_formatted, data_formatted)
-  }
   # Preprocessing: weekly data ---------------------------------------------
 } else {
   # Formatting for weekly target data
@@ -99,29 +104,11 @@ if (isTRUE(config$data_format_type[index] == "NYC_ED_daily_asof") && config$targ
       day_of_week = wday(date)
     ) |>
     filter(
-      as_of_date == config$forecast_date,
+      as_of == config$forecast_date,
       date < config$forecast_date
     ) |>
     arrange(date) |>
     select(date, obs_data, location, year, week, day_of_week)
-
-  # historical data
-  if (config$use_historical_data[index] == TRUE) {
-    old_data_formatted <- raw_data |>
-      mutate(
-        date = ymd(target_end_date),
-        obs_data = observation,
-        year = year(date),
-        week = week(date),
-        day_of_week = wday(date)
-      ) |>
-      filter(as_of_date == config$as_of_date_historical_data[index]) |>
-      arrange(date) |>
-      select(date, obs_data, location, year, week, day_of_week) |>
-      filter(date < min(data_formatted$date))
-
-    data_formatted <- bind_rows(old_data_formatted, data_formatted)
-  }
 }
 
 # Handle Unknown/NYC category

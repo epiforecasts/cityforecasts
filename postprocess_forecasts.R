@@ -8,6 +8,7 @@ library(lubridate)
 library(purrr)
 library(tidyr)
 library(blogdown)
+library(ggplot2)
 
 list.files(file.path("R"), full.names = TRUE) |>
   walk(source)
