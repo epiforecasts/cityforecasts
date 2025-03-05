@@ -39,18 +39,23 @@ raw_data_all <- read.csv(config$data_url[index])
 #     config$locs_list[[{{config$regions_to_fit[index]}}]])\
 
 if (config$regions_to_fit[index] == "NYC") {
-  raw_data <- raw_data_all |>
-    filter(location %in%
+  raw_data <- filter(
+    raw_data_all,
+    location %in%
       c(
         "Bronx", "Brooklyn", "Manhattan", "NYC",
         "Queens", "Staten Island", "Unknown"
-      ))
+      )
+  )
 } else if (config$regions_to_fit[index] == "TX") {
-  raw_data <- raw_data_all |>
-    filter(location %in%
+  raw_data <- filter(
+    raw_data_all,
+    location %in%
       c(
-        "San Antonio", "Dallas", "El Paso", "Houston", "Austin"
-      ))
+        "San Antonio", "Dallas", "El Paso",
+        "Houston", "Austin"
+      )
+  )
 }
 
 # Set up filepaths for saving data and figs -------------------------------
