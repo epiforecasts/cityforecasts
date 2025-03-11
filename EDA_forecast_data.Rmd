@@ -1,0 +1,219 @@
+---
+title: "EDA_forecast_data"
+output: html_document
+date: "2025-03-11"
+---
+
+The purpose of this Rmarkdown is to get a general sense of the patterns in the
+city-level hospital admissions data for NYC in the
+[flu-metrocast](https://github.com/reichlab/flu-metrocast) Hub.
+
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(ggplot2)
+library(readr)
+library(feasts)
+library(dplyr)
+library(stats)
+library(lubridate)
+library(tidyr)
+library(tsibble)
+```
+
+## Load in the data
+Plot the raw data. Note, the Hub also contains data on the perent of ED visits
+due to flu in 5 metro areas in Texas. We'll focus on the NYC data for now,
+but most of the transformations and analyses we do here can be duplicated
+on that data.
+```{r}
+raw_data <- read_csv("https://raw.githubusercontent.com/reichlab/flu-metrocast/refs/heads/main/target-data/time-series.csv") # nolint
+NYC_data <- raw_data |>
+  filter(
+    target == "ILI ED visits",
+    as_of == max(as_of),
+    location != "NYC"
+  )
+ggplot(NYC_data) +
+  geom_line(aes(x = target_end_date, y = observation)) +
+  facet_wrap(~location, scales = "free_y", nrow = 7) +
+  xlab("") +
+  ylab("ED visits due to ILI") +
+  ggtitle("NYC data") +
+  theme_bw()
+
+# Create a tsibble object to use with the feasts package
+NYC_data_tsibble <- NYC_data |>
+  mutate(year_week = yearweek(target_end_date)) |>
+  select(-target_end_date, -target, -as_of) |>
+  as_tsibble(key = c(location), index = year_week)
+```
+
+## Assign an epidemic season to the data, and make plots by season
+As a first pass, we could use year to look for seasonality. However, it is
+often easier to think in terms of the epidemic seasons, so we will add this as
+a variable and plot the data by season.
+```{r}
+NYC_clean <- NYC_data |>
+  mutate(
+    year = year(target_end_date),
+    week = week(target_end_date)
+  ) |>
+  # Name the season by the final year e.g. 2023-2024 is the 2024 season
+  mutate(
+    season = ifelse(week < 31, year, year + 1),
+    season_week = ifelse(week < 31, week + (52 - 30), week - 30)
+  ) |>
+  # For simplicity, remove the last week since it is incomplete (only includes
+  # 2 days of data)
+  filter(target_end_date <= as_of)
+
+ggplot(NYC_clean) +
+  geom_line(aes(
+    x = season_week, y = observation,
+    color = as.factor(season)
+  )) +
+  facet_wrap(~location, scales = "free_y", nrow = 7) +
+  theme_bw() +
+  xlab("Week of the season") +
+  ylab("ED visits due to ILI") +
+  labs(color = "Season ending")
+
+ggplot(NYC_clean |> filter(location == "Manhattan")) +
+  geom_line(aes(x = season, y = observation)) +
+  facet_wrap(~season_week) +
+  xlab("Season ending") +
+  ylab("ED visits due to ILI") +
+  ggtitle("Seasonal subseries plot for Manhattan")
+```
+From the seasonal plots, we can see that the peak doesn't always fall on the
+same week of the year, which peak time varying from below week 20 to week 35.
+We can visually see the atypical peak at week 35 observed in 2020 due to the
+COVID pandemic.
+
+## Plot relationships between the time series in each location
+To see the relationships between the time series across locations, we can plot
+them against one another and arrange them in a scatterplot matrix.
+```{r}
+NYC_clean |>
+  ungroup() |>
+  select(target_end_date, observation, location) |>
+  pivot_wider(values_from = observation, names_from = location) |>
+  GGally::ggpairs(columns = 2:7)
+```
+
+This scatterplot reveals strong correlations between all pairs of Manhattan,
+Brooklyn, Queens, and the Bronx, and slightly lower (but still high) correlation
+between Staten Island and the other boroughs. This makes sense, since Staten
+Island tends to be less urban/connected than the other boroughs.
+
+## Lag plots
+
+Next we will make some scatter plots of the correlation between different
+lags in the data. We will start by doing this just for  a single location
+for simplicity.
+
+```{r}
+NYC_clean |>
+  filter(location == "Manhattan") |>
+  ungroup() |>
+  mutate(
+    lag_1 = lag(observation, n = 1),
+    lag_12 = lag(observation, n = 12),
+    lag_24 = lag(observation, n = 24),
+    lag_36 = lag(observation, n = 36),
+    lag_48 = lag(observation, n = 48),
+    lag_52 = lag(observation, n = 52)
+  ) |>
+  pivot_longer(
+    cols = starts_with("lag_"),
+    names_to = "lag",
+    names_prefix = "lag_",
+    values_to = "count"
+  ) |>
+  ggplot() +
+  geom_point(aes(x = count, y = observation)) +
+  facet_wrap(~lag) +
+  xlab("Lagged count") +
+  ylab("count")
+
+# Try using the built in function for a tsibble.
+NYC_data_tsibble |>
+  filter(location == "Manhattan") |>
+  gg_lag(observation, geom = "point", lags = c(1, 12, 24, 36, 48, 52))
+```
+
+Here, we have just plotted the lagged values for a few different lags. We
+can see that the most correlated are the ones 1 week apart. There is some
+correlation between the ones 52 weeks apart, and there appears to be
+negative correlation between the data 24 and 36 weeks apart.
+
+## Autocorrelation function
+Next we will plot an autocorrelation function, which will compute the
+autocorrelation coefficient of the data at each lag
+```{r}
+NYC_data_tsibble |>
+  filter(location == "Manhattan") |>
+  ACF(observation, lag_max = 416) |>
+  autoplot() + labs(title = "Autocorrelation coefficients for Manhattan")
+```
+
+We can see from this plot that multiples of 52 seem to exhibit some degree of
+correlation, and multiples of 52 shifted by 26 produce negative correlations
+(because troughs tend to be a half year behind the peak).
+
+## Data adjustments
+One thing we might really want to do is to adjust this data by population
+size, as this will disentangle changes in ED visits due to ILI driven
+by changes in the population size versus actually infection prevalence.
+
+** To do: find dataset of population sizes over time in NYC **
+
+Another common transformation is to log scale the data, which might make sense
+in our case since we expect epidemic dynamics to follow exponential dynamics.
+
+## Decomposition
+We can attempt to decompose the time series to separate the seasonality trend,
+the trend-cycle, and the remainder i.e.
+$$ y_t = S_t + T_t + R_t $$
+
+We'll start by using a classical decomposition on the data from Manhattan.
+```{r}
+NYC_data_tsibble |>
+  filter(location == "Manhattan") |>
+  model(classical_decomposition(observation, type = "additive")) |>
+  components() |>
+  autoplot() +
+  labs(title = "Classical additive decomposition of ILI ED visits in Manhattan")
+```
+Looking at this, we can see that the "random" or remainder has quite a bit of
+pattern in it. This suggests that we might want to try different
+decomposition methods so that we can capture those in the "trend" component
+instead.
+
+Let's try an STL decomposition
+```{r}
+NYC_data_tsibble |>
+  filter(location == "Manhattan") |>
+  model(STL(
+    observation ~ trend(window = 15) +
+      season(window = 5),
+    robust = TRUE
+  )) |>
+  components() |>
+  autoplot() +
+  labs(title = "STL decomposition of ILI ED visits in Manhattan")
+```
+Here I am setting the trend-cycle window to allow the trend to be learned across
+15 week moving averages (I think). Setting this to be higher will smooth out
+the trend, and put more of the change in the remainder.
+Setting this to be lower will allow more deviation in the trend and less in the
+remainder.
+
+I have set the season window to 5, which results in seasonal trends that are
+learned over moving windows of 5 seasons. This allows for time varying
+seasonality, as we can see in the plot.
+
+We can see the effects of COVID both in the trend (spike in 2020) and also in
+the remainder (spike in 2020). There's also a post-pandemic
