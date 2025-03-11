@@ -39,6 +39,31 @@
       ],
       "Hash": "00077243042334c50b74cdfafe172870"
     },
+    "GGally": {
+      "Package": "GGally",
+      "Version": "2.2.1",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Requirements": [
+        "R",
+        "RColorBrewer",
+        "dplyr",
+        "ggplot2",
+        "ggstats",
+        "grDevices",
+        "grid",
+        "gtable",
+        "lifecycle",
+        "magrittr",
+        "plyr",
+        "progress",
+        "rlang",
+        "scales",
+        "tidyr",
+        "utils"
+      ],
+      "Hash": "b11ac45c916608b7d1374ff87da053d5"
+    },
     "MASS": {
       "Package": "MASS",
       "Version": "7.3-61",
@@ -194,6 +219,18 @@
         "utils"
       ],
       "Hash": "2288423bb0f20a457800d7fc47f6aa54"
+    },
+    "anytime": {
+      "Package": "anytime",
+      "Version": "0.3.11",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Requirements": [
+        "BH",
+        "R",
+        "Rcpp"
+      ],
+      "Hash": "a1db66ce27bcfb58cb67ad4e04d48b79"
     },
     "argparser": {
       "Package": "argparser",
@@ -498,7 +535,7 @@
       "Source": "Repository",
       "Repository": "https://epiforecasts.r-universe.dev",
       "RemoteUrl": "https://github.com/stan-dev/cmdstanr",
-      "RemoteSha": "4e056be9ba0a56192980e8df46a2f6c79982256f",
+      "RemoteSha": "3b6cf27cea54a5955e4cb550cfcbb29bd22f4201",
       "Requirements": [
         "R",
         "R6",
@@ -692,6 +729,17 @@
       ],
       "Hash": "fedd9d00c2944ff00a0e2696ccf048ec"
     },
+    "ellipsis": {
+      "Package": "ellipsis",
+      "Version": "0.3.2",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Requirements": [
+        "R",
+        "rlang"
+      ],
+      "Hash": "bb0eec2fe32e88d9e2836c2f73ea2077"
+    },
     "evaluate": {
       "Package": "evaluate",
       "Version": "1.0.1",
@@ -701,6 +749,33 @@
         "R"
       ],
       "Hash": "3fd29944b231036ad67c3edb32e02201"
+    },
+    "fabletools": {
+      "Package": "fabletools",
+      "Version": "0.5.0",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Requirements": [
+        "R",
+        "R6",
+        "distributional",
+        "dplyr",
+        "generics",
+        "ggdist",
+        "ggplot2",
+        "lifecycle",
+        "progressr",
+        "rlang",
+        "scales",
+        "stats",
+        "tibble",
+        "tidyr",
+        "tidyselect",
+        "tsibble",
+        "utils",
+        "vctrs"
+      ],
+      "Hash": "0242939c5bf3a090df0b8877c7a6c97a"
     },
     "fansi": {
       "Package": "fansi",
@@ -728,6 +803,31 @@
       "Repository": "CRAN",
       "Hash": "aa5e1cd11c2d15497494c5292d7ffcc8"
     },
+    "feasts": {
+      "Package": "feasts",
+      "Version": "0.4.1",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Requirements": [
+        "R",
+        "dplyr",
+        "fabletools",
+        "ggplot2",
+        "grid",
+        "gtable",
+        "lifecycle",
+        "lubridate",
+        "rlang",
+        "scales",
+        "slider",
+        "tibble",
+        "tidyr",
+        "tsibble",
+        "utils",
+        "vctrs"
+      ],
+      "Hash": "276b81269ccbe43e7ad23fe8d4b4cadd"
+    },
     "fontawesome": {
       "Package": "fontawesome",
       "Version": "0.5.3",
@@ -739,6 +839,22 @@
         "rlang"
       ],
       "Hash": "bd1297f9b5b1fc1372d19e2c4cd82215"
+    },
+    "forcats": {
+      "Package": "forcats",
+      "Version": "1.0.0",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Requirements": [
+        "R",
+        "cli",
+        "glue",
+        "lifecycle",
+        "magrittr",
+        "rlang",
+        "tibble"
+      ],
+      "Hash": "1a0a9a3d5083d0d573c4214576f1e690"
     },
     "forecasttools": {
       "Package": "forecasttools",
@@ -920,6 +1036,29 @@
         "withr"
       ],
       "Hash": "66488692cb8621bc78df1b9b819497a6"
+    },
+    "ggstats": {
+      "Package": "ggstats",
+      "Version": "0.9.0",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Requirements": [
+        "R",
+        "cli",
+        "dplyr",
+        "forcats",
+        "ggplot2",
+        "lifecycle",
+        "patchwork",
+        "purrr",
+        "rlang",
+        "scales",
+        "stats",
+        "stringr",
+        "tidyr",
+        "utils"
+      ],
+      "Hash": "7970feac45e807dabb5f53add546afcc"
     },
     "gh": {
       "Package": "gh",
@@ -1756,6 +1895,18 @@
       ],
       "Hash": "f4625e061cb2865f111b47ff163a5ca6"
     },
+    "progressr": {
+      "Package": "progressr",
+      "Version": "0.15.1",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Requirements": [
+        "R",
+        "digest",
+        "utils"
+      ],
+      "Hash": "f8e9876b6ffff900e83f171081cacd6f"
+    },
     "promises": {
       "Package": "promises",
       "Version": "1.3.2",
@@ -2041,6 +2192,20 @@
       ],
       "Hash": "63e4ea2379e79cf18813dd0d8146d27c"
     },
+    "slider": {
+      "Package": "slider",
+      "Version": "0.3.2",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Requirements": [
+        "R",
+        "cli",
+        "rlang",
+        "vctrs",
+        "warp"
+      ],
+      "Hash": "5dbae6fb8e910b174bc3428164f4e8f8"
+    },
     "smooth": {
       "Package": "smooth",
       "Version": "4.1.1",
@@ -2235,6 +2400,27 @@
       ],
       "Hash": "3ec7e3ddcacc2d34a9046941222bf94d"
     },
+    "tsibble": {
+      "Package": "tsibble",
+      "Version": "1.1.6",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Requirements": [
+        "R",
+        "anytime",
+        "dplyr",
+        "ellipsis",
+        "generics",
+        "lifecycle",
+        "lubridate",
+        "methods",
+        "rlang",
+        "tibble",
+        "tidyselect",
+        "vctrs"
+      ],
+      "Hash": "10a8318a2264880cf5e83b32241306d2"
+    },
     "tzdb": {
       "Package": "tzdb",
       "Version": "0.4.0",
@@ -2305,6 +2491,16 @@
         "withr"
       ],
       "Hash": "390f9315bc0025be03012054103d227c"
+    },
+    "warp": {
+      "Package": "warp",
+      "Version": "0.2.1",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Requirements": [
+        "R"
+      ],
+      "Hash": "fea474d578b1cbcb696ae6ac8bdcc439"
     },
     "withr": {
       "Package": "withr",
