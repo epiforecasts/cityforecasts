@@ -140,8 +140,8 @@ for (i in seq_along(config$regions_to_fit)) {
     df_weekly <- df_recent |>
       mutate(
         reference_date = ymd(config$forecast_date) +
-          (7 - wday(ymd(config$forecast_date), week_start = 7)),
-        target_end_date = ymd(date) + (7 - wday(date, week_start = 7)),
+          (7 - lubridate::wday(ymd(config$forecast_date), week_start = 7)),
+        target_end_date = lubridate::ymd(date) + (7 - lubridate::wday(date, week_start = 7)),
         horizon = floor(as.integer(target_end_date - reference_date)) / 7,
         last_obs_date_date = max(df_recent$date[!is.na(df_recent$obs_data)])
       ) |>
