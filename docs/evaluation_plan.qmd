@@ -1,0 +1,15 @@
+---
+title: "evaluation_plan"
+format: html
+---
+
+This document describes the analysis plan to perform both a real-time and retrospective evaluation of the models submitted to the [`flu-metrocast Hub`](https://github.com/reichlab/flu-metrocast) for the 2024-2025 respiratory virus season.
+The `flu-metrocast` Hub was developed in order to address a request for more local-level forecasting efforts in the United States.
+It serves as a platform for assessing the robustness and accuracy of local-level forecasts, which can in return facilitate improved methods to address the nuances and complexities that arise when working with local level data at small population sizes.
+To assess the forecast performance of the localized forecasts in the Hub, we will use both the forecasts in the GitHub repository representing the real-time submissions as well as retrospectively produced forecasts from each of the 4 submitting teams for true and approximated historical snapshots of the data available as of each forecast date for the boroughs of New York City and a selected subset of HSA regions in Texas. Additionally, teams will retrospectively generate aggregate-level forecasts using their model fit only to the aggregate data (either all of New York City combined or all of Texas).
+The population-scaled aggregate-level forecasts will be used to represent the "status quo" in absence of local level forecasting, with the implicit assumption being that in absence of local forecasting in presence of a more aggregate forecast, the aggregate-level forecasts dynamics would likely be imposed upon the locality of interest.
+
+## Aims
+The goal of these analyses will be to assess:
+1. How do local level forecasts compare to aggregate level forecasts in terms of forecast performance across different models?
+2. Which models performed best in the local setting in real-time and retrospectively accounting for confounding variables in epidemic phase and data availability?
