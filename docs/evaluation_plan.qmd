@@ -13,3 +13,59 @@ The population-scaled aggregate-level forecasts will be used to represent the "s
 The goal of these analyses will be to assess:
 1. How do local level forecasts compare to aggregate level forecasts in terms of forecast performance across different models?
 2. Which models performed best in the local setting in real-time and retrospectively accounting for confounding variables in epidemic phase and data availability?
+
+## Data
+
+This analysis will use publicly available data from the `flu-metrocast` Hub.
+The hub contains historical snapshots of the data available as of forecast dates starting in January of 2025 for New York City and February of 2025 for Texas.
+To ensure that we are capturing forecast performance across a range of epidemic phases, we reconstruct quasi-snapshots of the data available as of forecast dates starting in October 2025.
+These quasi-snapshots will contain the same reporting lag as the real-time snapshots, but will simply consist of truncating the full time-series of data.
+Teams will produce forecasts from October 2024 to May 2025.
+
+### Target data
+The data for Texas and New York City consists of the following forecast targets:
+| Target name | Jurisdictions |  Target description |
+|------------------------|------------------------|------------------------|
+| ILI ED visits | New York City (NYC), Bronx, Brooklyn, Queens, Manhattan, and Staten Island | Weekly number of emergency department visits due to influenza-like illness. |
+| Flu ED visits pct | Austin, Houston, Dallas, El Paso, San Antonio | Weekly percentage of emergency department visits due to influenza. |
+
+For New York City, models predict new ED visits due to ILI for the epidemiological week (EW) ending on the reference date (horizon = 0) as well as for horizons 1 through 4.
+For Texas cities, models predict the percentage of new ED visits due to influenza for horizons -1 to 4.
+
+## Models
+We will solicit retrospective forecasts from all teams that submitted models to the Hub in real-time. These include:
+
+- Copycat
+- GBQR
+- INFLAenza
+- lop_norm
+- dyngam
+- baseline
+
+For each model in the local jurisdictions, we will ask that teams additionally produce a forecast for the aggregate data (so all of New York City or all of Texas, both of which data will be provided for), using only the data at the aggregate level.
+
+## Evaluation
+The evaluation will broadly be broken up along two dimensions:
+- aggregate vs local model comparison and within-local model comparison
+- real-time and retrospective
+
+### Retrospective analysis: aggregate vs local model comparison
+For this analysis, we will compare the performance of forecasts produced using each of the local models compared to a per-capita scaled version of the aggregate level forecast super-imposed on the locality.
+
+We will score forecasts using the weighted interval score (WIS) evaluated against the final dataset X days after the final forecast date using the quantiles solicited in the `flu-metrocast` Hub (0.025, 0.05, 0.1, 0.25, 0.5, 0.75, 0.9, 0.95, 0.975).
+We will decompose WIS into dispersion, overprediction, and underprdiction as well as compute coverage metrics for all models, local and aggregate.
+Relative WIS will be computed relative to the corresponding aggregate-level model.
+Values of 1 indicate equivalent forecast performance, values of less than 1 indicate improved performance, and greater than 1 indicate improved performance compared to the aggregate level version of the model.
+
+We examine the relative and absolute WIS across multiple dimensions: overall, by nowcast horizon, and by location.
+
+### Retrospective analysis: local model comparison
+This analysis will compare performance between the different retrospectively produced local forecasts.
+
+We will use the scores from the previous section, focusing only on the local scores.
+Relative WIS will be computed relative to the baseline local model.
+
+We will example the relative and absolute WIS scores across multiple dimensions: overall, by nowcast horizon, and by location.
+
+### Real-time analysis: local model comparison
+Using the quantiles already submitted to the Hub from the models in real-time
