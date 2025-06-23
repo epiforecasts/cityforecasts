@@ -63,7 +63,7 @@ We examine the relative and absolute WIS across multiple stratifications: overal
 Similar in spirit to Sherratt et al, we will perform a model-based evaluation to account for confounding variables impacting the performance of the local model compared to the aggregate model.
 
 To assess the impact on forecast performance of local forecasting, we will include the following confounding variables:
-- score of the corresponding aggregate model
+- score of the corresponding aggregate model (as an offset)
 - forecast date and location together
 - location
 - model
@@ -82,40 +82,27 @@ The $s(location, bs = "re")$ term tells us about the additional effect of locati
 We will plot the partial effects of each of these components in order to understand the drivers of differences in forecast performance between local and aggregate forecasts.
 
 ### Retrospective analysis: local model comparison
-This analysis will compare performance between the different retrospectively produced local forecasts.
+Because all models will produce forecasts retrospectively for all locations and forecast dates, for this component we can focus on aggregate and stratified scores by location and forecast date.
 
-We will use the scores from the previous section, focusing only on the local scores.
-Relative WIS will be computed relative to the baseline local model.
+### Real-time analysis: local model comparison
+Using the quantiles already submitted to the Hub from the models in real-time we will score forecasts using the WIS.
+Relative WIS will be computed relative to the baseline model.
 
-Again, we will examine the relative and absolute WIS scores across multiple stratifications: overall, by nowcast horizon, and by location.
+Because not all models were submitted for all forecast dates and locations, with only a handful of models submitted for the complete set of forecast dates, it is difficult to assess performance in an unbiased manner.
 
-#### Model-based evaluation for comparing across local models
-Again, and in a more similar vein to Sherratt et al, we will perform a model-based evaluation to account for confounding variables impacting the forecast performance of each model
-
-We will include the following confounding variables:
+#### Model-based evaluation of real-time local model performance
+Similar in vein to Sherratt et al, we will set up a model-based evaluation to account for confounding variables that impact forecast performance.
+These will include:
 - location
 - forecast date and location
 - horizon
 - epidemic phase
 - model
 
-Resulting in the following model formulation:
 
 $$
 WIS^{local}_{h,d,l,m} \sim \beta + s(location, bc = "re") + s(forecast_date, by = "location") + s(horizon, k) + s(epidemic_phase, bs = "re") + s(model, bs = "re")
 $$
 Where $h$ is the forecast horizon (from -1 to 4 weeks), $d$ is the forecast date, $l$ is the location of the forecast (the borough or metro area), and $m$ is the model.
 The goal of this analysis will be to estimate the effect of the model (via the $s(model, bs = "re")$ term) while taking into account the many additional confounding variables that contribute to forecast performance.
-
-### Real-time analysis: local model comparison
-Using the quantiles already submitted to the Hub from the models in real-time we will score forecasts using the WIS.
-Relative WIS will be computed relative to the baseline model.
-
-Because not all models were submitted for all forecast dates and locations, with only a handful of models submitted for the complete set of forecast dates, we will not compute overall and by horizon, location, and forecast date averages because of potential bias in these summary metrics due to different forecasts being present within each model's set of forecasts.
-
-Instead, we will in this case jump to the model-based evaluation approach described above:
-
-$$
-WIS^{local}_{h,d,l,m} \sim \beta + s(location, bc = "re") + s(forecast_date, by = "location") + s(horizon, k) + s(epidemic_phase, bs = "re") + s(model, bs = "re")
-$$
 Once again, we will plot the partial effect of the model to compare model performance accounting for confounding variables.
