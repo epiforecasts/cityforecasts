@@ -1,8 +1,3 @@
----
-editor_options:
-  markdown:
-    wrap: 72
----
 
 # Pregistration: Evaluation of real-time performance of local-level flu forecasts in a subset of locations in the United States
 
@@ -146,17 +141,17 @@ will include the following confounding variables:
 *Observation model* : We'll assume a normally distributed errors on the
 WIS scores on the log transformed predictions and observations.
 
-$$
-WIS^{local}_{h,d,l,m} \sim Normal(\mu^{local}_{h,d,l,m}, \sigma)`
-$$
+```math
+WIS^{local}_{h,d,l,m} \sim Normal(\mu^{local}_{h,d,l,m}, \sigma)
+```
 
 *Latent model*: We will model the expected WIS of a particular forecast
 horizon $h$ on forecast date $d$ at location $l$ for model $m$ with a
 hierarchical GAM.
 
-$$
+```math
 \mu^{local}_{h,d,l,m} =  \beta + WIS^{aggregate}_{h,d,l,m} + f_{global}(location) + f_{forecast_date}(location) +f(model)
-$$
+```
 
  Where $h$ is the forecast horizon (from -1 to 4 weeks), $d$ is the
 forecast date, $l$ is the location of the forecast (the borough or metro
