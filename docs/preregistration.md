@@ -1,5 +1,5 @@
 
-# Pregistration: Evaluation of real-time performance of local-level flu forecasts in a subset of locations in the United States
+# Preregistration: Evaluation of real-time performance of local-level flu forecasts in a subset of locations in the United States
 
 ## Background
 
