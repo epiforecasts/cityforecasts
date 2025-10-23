@@ -22,5 +22,54 @@ load_data_targets <- list(
         !is.na(percent_visits_influenza)
       ) |>
       select(week_end, geography, hsa, hsa_nci_id, percent_visits_influenza)
+  ),
+  tar_target(
+    name = all_nyc_data,
+    command = read_csv(nyc_data_url) |>
+      filter(as_of == max(as_of))
+  ),
+  tar_target(
+    name = all_local_fips_data,
+    command = all_nyc_data |>
+      filter(tolower(location) %in% c(location_data_local_fips$location))
+  ),
+  tar_target(
+    name = nycwide_data,
+    command = all_nyc_data |>
+      filter(location == "NYC") |>
+      select(target_end_date, location, observation, target)
+  ),
+  # Combine the state/aggregate level data ---------------------------------
+  tar_target(
+    name = state_nssp_clean,
+    command = all_state_data |>
+      rename(
+        target_end_date = time_value,
+        location = geo_value,
+        observation = value
+      ) |>
+      mutate(
+        location = toupper(location),
+        target = "Flu ED visits pct"
+      ) |>
+      select(target_end_date, location, observation, target)
+  ),
+  tar_target(
+    name = agg_level_data,
+    command = bind_rows(nycwide_data, state_nssp_clean)
+  ),
+  tar_target(
+    name = state_data_to_model,
+    command = if (exclude_covid) {
+      agg_level_data |> filter(
+        target_end_date <
+          ymd(covid_exclusion_period[1]),
+        target_end_date >
+          ymd(covid_exclusion_period[2])
+      )
+    } else {
+      agg_level_data
+    }
   )
+  # Combine the local level data ---------------------------------------
 )
