@@ -31,7 +31,9 @@ load_data_targets <- list(
   tar_target(
     name = all_local_fips_data,
     command = all_nyc_data |>
-      filter(tolower(location) %in% c(location_data_local_fips$location))
+      filter(tolower(location) %in% c(location_data_local_fips$location)) |>
+      mutate(agg_location = "NYC") |>
+      select(target_end_date, location, agg_location, observation, target)
   ),
   tar_target(
     name = nycwide_data,
@@ -62,14 +64,81 @@ load_data_targets <- list(
     name = state_data_to_model,
     command = if (exclude_covid) {
       agg_level_data |> filter(
-        target_end_date <
-          ymd(covid_exclusion_period[1]),
-        target_end_date >
-          ymd(covid_exclusion_period[2])
+        !(target_end_date > ymd(covid_exclusion_period[1]) &
+          target_end_date <
+            ymd(covid_exclusion_period[2]))
       )
     } else {
       agg_level_data
     }
-  )
+  ),
   # Combine the local level data ---------------------------------------
+  tar_target(
+    name = hsa_data_clean,
+    command = all_local_hsa_data |>
+      rename(
+        target_end_date = week_end,
+        location = hsa,
+        agg_location = geography,
+        observation = percent_visits_influenza
+      ) |>
+      mutate(
+        target = "Flu ED visits pct"
+      ) |>
+      select(target_end_date, location, agg_location, observation, target)
+  ),
+  tar_target(
+    name = local_data,
+    command = bind_rows(hsa_data_clean, all_local_fips_data)
+  ),
+  tar_target(
+    name = local_data_to_model,
+    command = if (exclude_covid) {
+      local_data |> filter(
+        !(target_end_date > ymd(covid_exclusion_period[1]) &
+          target_end_date <
+            ymd(covid_exclusion_period[2]))
+      )
+    } else {
+      agg_level_data
+    }
+  ),
+  tar_group_by(
+    name = local_data_by_agg,
+    command = local_data_to_model,
+    by = agg_location
+  ),
+  tar_group_by(
+    name = state_data_by_agg,
+    command = state_data_to_model,
+    by = location
+  ),
+  tar_target(
+    name = fp_figs,
+    command = file.path(
+      "output",
+      "figures",
+      forecast_date
+    )
+  ),
+  tar_target(
+    name = plot_local_data,
+    command = get_plot_data(local_data_by_agg,
+      fp_figs = fp_figs,
+      fig_name = "raw_data_local"
+    ),
+    pattern = map(local_data_by_agg),
+    format = "rds",
+    iteration = "list"
+  ),
+  tar_target(
+    name = plot_state_data,
+    command = get_plot_data(state_data_by_agg,
+      fp_figs = fp_figs,
+      fig_name = "raw_data_agg"
+    ),
+    pattern = map(state_data_by_agg),
+    format = "rds",
+    iteration = "list"
+  )
 )
