@@ -19,7 +19,7 @@ load_data_targets <- list(
     command = read_csv(nssp_raw_data_url) |>
       filter(
         hsa_nci_id %in% location_data_local_hsa$original_location_code,
-        !is.na(percent_visits_influenza)
+        !is.na(percent_visits_influenza),
       ) |>
       select(week_end, geography, hsa, hsa_nci_id, percent_visits_influenza)
   ),
@@ -58,7 +58,9 @@ load_data_targets <- list(
   ),
   tar_target(
     name = agg_level_data,
-    command = bind_rows(nycwide_data, state_nssp_clean)
+    command = bind_rows(nycwide_data, state_nssp_clean) |>
+      filter(target_end_date < forecast_date) |>
+      distinct()
   ),
   tar_target(
     name = state_data_to_model,
@@ -89,7 +91,12 @@ load_data_targets <- list(
   ),
   tar_target(
     name = local_data,
-    command = bind_rows(hsa_data_clean, all_local_fips_data)
+    command = bind_rows(hsa_data_clean, all_local_fips_data) |>
+      filter(target_end_date < forecast_date) |>
+      distinct() |>
+      mutate(agg_location = ifelse(agg_location == "NYC",
+        "New York City", agg_location
+      ))
   ),
   tar_target(
     name = local_data_to_model,
@@ -125,6 +132,7 @@ load_data_targets <- list(
     name = plot_local_data,
     command = get_plot_data(local_data_by_agg,
       fp_figs = fp_figs,
+      forecast_date = forecast_date,
       fig_name = "raw_data_local"
     ),
     pattern = map(local_data_by_agg),
@@ -135,6 +143,7 @@ load_data_targets <- list(
     name = plot_state_data,
     command = get_plot_data(state_data_by_agg,
       fp_figs = fp_figs,
+      forecast_date = forecast_date,
       fig_name = "raw_data_agg"
     ),
     pattern = map(state_data_by_agg),

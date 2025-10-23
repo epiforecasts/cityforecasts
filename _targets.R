@@ -57,7 +57,17 @@ load_data <- list(
   load_data_targets
 )
 
+preprocess_data <- list(
+  preprocess_data_targets
+)
+
+fit_models <- list(
+  fit_model_targets
+)
+
 list(
   set_up,
-  load_data
+  load_data,
+  preprocess_data,
+  fit_models
 )
