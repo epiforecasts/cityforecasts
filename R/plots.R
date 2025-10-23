@@ -47,7 +47,7 @@ get_plot_forecasts <- function(dfall,
   )) +
     geom_line(
       aes(
-        x = target_end_date, y = value,
+        x = target_end_date, y = 100 * value,
         group = draw,
         color = period
       ),
@@ -67,7 +67,7 @@ get_plot_forecasts <- function(dfall,
     plot = plot_draws,
     filename = file.path(
       fp_figs, forecast_date, model_run_location,
-      glue::glue("forecast_darws.png")
+      glue::glue("forecast_draws.png")
     )
   )
   return(plot_draws)

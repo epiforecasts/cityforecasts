@@ -15,6 +15,9 @@ fit_model_targets <- list(
       dfall = ar_model,
       forecast_date = forecast_date,
       fp_figs = file.path("output", "figures")
-    )
+    ),
+    pattern = map(ar_model),
+    format = "rds",
+    iteration = "list"
   )
 )
