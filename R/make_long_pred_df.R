@@ -63,16 +63,16 @@ make_long_pred_df <- function(forecast_obj,
   dfall <- dfall |>
     left_join(data.frame(
       t = 1:max(dfall$t),
-      date = seq(
-        from = min(model_data$date),
-        to = min(model_data$date) + factor * max(dfall$t) - 1,
+      target_end_date = seq(
+        from = min(model_data$target_end_date),
+        to = min(model_data$target_end_date) + factor * max(dfall$t) - 1,
         by = {{ timestep }}
       )
     ), by = "t") |>
     left_join(
       model_data |>
-        select(date, obs_data, location),
-      by = c("date", "location")
+        select(target_end_date, observation, location),
+      by = c("target_end_date", "location")
     )
 
   return(dfall)

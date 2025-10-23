@@ -67,73 +67,21 @@ fit_ar_mod <- function(model_data,
     fp_mod,
     "ar_mod.rda"
   ))
-  # fp_long <- file.path(fp_figs, model_run_location)
-  # dir_create(fp_long)
-  #
-  # # Save a bunch of figures
-  # week_coeffs <- plot_predictions(ar_mod,
-  #                                 condition = c("week", "series"),
-  #                                 points = 0.5, conf_level = 0.5
-  # ) +
-  #   labs(y = "Counts", x = "week")
-  # ggsave(
-  #   plot = week_coeffs,
-  #   filename = file.path(fp_long, "week_coeffs.png")
-  # )
-  #
-  # conditional_effects(ar_mod)
-  #
-  # trace_sigma <- mcmc_plot(ar_mod,
-  #                          variable = "sigma",
-  #                          regex = TRUE,
-  #                          type = "trace"
-  # )
-  # ggsave(
-  #   plot = trace_sigma,
-  #   filename = file.path(fp_long, "trace_sigma.png")
-  # )
-  # trace_ar_coeff <- mcmc_plot(ar_mod,
-  #                             variable = "ar1",
-  #                             regex = TRUE,
-  #                             type = "areas"
-  # )
-  # ggsave(
-  #   plot = trace_ar_coeff,
-  #   filename = file.path(fp_long, "trace_ar_coeff.png")
-  # )
-  #
-  # slopes <- plot_slopes(ar_mod,
-  #                       variable = "week",
-  #                       condition = c("series", "series"),
-  #                       type = "link"
-  # ) +
-  #   theme(legend.position = "none") +
-  #   labs(y = "Log(counts)", x = "Location")
-  # ggsave(
-  #   plot = slopes,
-  #   filename = file.path(fp_long, "slopes.png")
-  # )
-  #
-  # # Hierarchical trend effects
-  # # trends <- plot(ar_mod, type = "smooths", trend_effects = TRUE)
-  # # ggsave(
-  # #   plot = trends,
-  # #   filename = file.path(fp_figs, "trends.png")
-  # # )
-  # # Hierarchical intercepts
-  # if(length(unique(model_data_fit$series))>1){
-  #   intercepts <- plot(ar_mod, type = "re", trend_effects = TRUE)
-  #   ggsave(
-  #     plot = intercepts,
-  #     filename = file.path(fp_long, "intercepts.png")
-  #   )
-  # }
-  #
-  example_forecast <- plot(ar_mod, type = "forecast", series = 1)
-  ggsave(
-    plot = example_forecast,
-    filename = file.path(fp_figs, "example_forecast.png")
+  forecast_obj <- forecast(ar_mod,
+    newdata = forecast_data_fit,
+    type = "response"
   )
+  dfall <- make_long_pred_df(
+    forecast_obj = forecast_obj,
+    model_data = model_data,
+    pred_type = "value",
+    timestep = "week"
+  ) |>
+    mutate(
+      model_run_location = model_run_location,
+      target = target
+    )
 
-  return(ar_mod)
+
+  return(dfall)
 }
