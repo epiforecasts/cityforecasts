@@ -46,12 +46,10 @@ tar_option_set(
   error = "null"
 )
 
-# Load in the config file
-config <- parseTOML(file.path("input", "config.toml"))
 
 # Get the locations to forecast
 set_up <- list(
-  create_forecast_date_loc_targets
+  create_config_targets
 )
 
 # Load in the data for each location
