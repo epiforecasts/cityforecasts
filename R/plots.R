@@ -62,11 +62,11 @@ get_plot_forecasts <- function(dfall,
     theme_bw() +
     xlab("") +
     ylab(target)
-  dir_create(file.path(fp_figs, model_run_location))
+  dir_create(file.path(fp_figs, forecast_date, model_run_location))
   ggsave(
     plot = plot_draws,
     filename = file.path(
-      fp_figs, model_run_location,
+      fp_figs, forecast_date, model_run_location,
       glue::glue("forecast_darws.png")
     )
   )
