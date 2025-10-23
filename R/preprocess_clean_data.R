@@ -5,8 +5,7 @@ preprocess_clean_data <- function(data) {
   )
 
   model_data <- data |>
-    mutate(series = as.factor(location)) |>
-    group_by(series, location) |>
+    group_by(location) |>
     tidyr::complete(target_end_date = seq(min(target_end_date),
       max(target_end_date),
       by = "week"
@@ -23,11 +22,11 @@ preprocess_clean_data <- function(data) {
     ) |>
     select(
       time, target_end_date,
-      observation, series, location, year, season, week, target
+      observation, location, year, season, week, target
     ) |>
     mutate(model_run_location = agg_location)
 
-  if ("pct" %in% unique(data$target)) {
+  if (str_detect(unique(data$target), "pct")) {
     model_data <- model_data |>
       mutate(observation = observation / 100)
   }
@@ -43,7 +42,7 @@ get_forecast_data <- function(model_data,
   target <- unique(model_data$target)[1]
 
   forecast_data <- model_data |>
-    group_by(series, location) |>
+    group_by(location) |>
     tidyr::complete(
       target_end_date = seq(
         from = next_saturday,
@@ -64,7 +63,7 @@ get_forecast_data <- function(model_data,
     filter(target_end_date > max(model_data$target_end_date)) |>
     select(
       time, target_end_date,
-      observation, series, location, year, season, week
+      observation, location, year, season, week
     ) |>
     mutate(
       target = target,

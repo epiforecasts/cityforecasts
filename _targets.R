@@ -16,6 +16,10 @@ library(fs)
 library(rlang)
 library(epidatr)
 library(RcppTOML)
+library(cmdstanr)
+library(mvgam)
+library(stringr)
+library(gratia)
 
 # load functions
 functions <- list.files(here("R"), full.names = TRUE)
@@ -35,7 +39,10 @@ tar_option_set(
     "lubridate",
     "tidyr",
     "glue",
-    "epidatr"
+    "epidatr",
+    "stringr",
+    "gratia",
+    "mvgam"
   ),
   workspace_on_error = TRUE,
   storage = "worker",
