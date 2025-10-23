@@ -11,6 +11,18 @@
 *.xls
 *.xlsx
 
+# Targets
+_targets/
+
+#Other
+*.DS_Store
+renv/
+output/figures/
+output/model/
+output/summary/
+input/model_data/
+
+
 # Documents
 *.doc
 *.docx
