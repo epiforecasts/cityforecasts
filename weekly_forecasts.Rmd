@@ -1,0 +1,24 @@
+---
+title: "weekly_forecasts"
+output: html_document
+---
+
+```{r, echo = FALSE}
+library(targets)
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+library(purrr)
+```
+
+```{r, fig.width=10, fig.height=6}
+plot_draws <- tar_read(plot_forecast_draws)
+
+walk(plot_draws, print)
+```
+
+```{r, fig.width=10, fig.height=6}
+plot_quantiles <- tar_read(plot_quantiles)
+
+walk(plot_quantiles, print)
+```

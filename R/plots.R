@@ -72,3 +72,69 @@ get_plot_forecasts <- function(dfall,
   )
   return(plot_draws)
 }
+
+get_plot_quantiles <- function(df_quantiled,
+                               df_quantiles_wide,
+                               reference_date,
+                               fp_figs,
+                               forecast_date) {
+  target <- unique(df_quantiled$target)
+  model_run_location <- unique(df_quantiled$model_run_location)
+  plot_quantiles <-
+    ggplot() +
+    geom_line(
+      data = df_weekly_quantiled |>
+        filter(
+          target_end_date >= reference_date - weeks(10),
+          target_end_date < reference_date
+        ),
+      aes(x = target_end_date, y = obs_data),
+      linetype = "dashed"
+    ) +
+    geom_point(
+      data = df_weekly_quantiled |>
+        filter(
+          target_end_date >= reference_date - weeks(10),
+          target_end_date < reference_date
+        ),
+      aes(x = target_end_date, y = obs_data)
+    ) +
+    facet_wrap(~location, scales = "free_y") +
+    geom_line(
+      data = df_quantiles_wide,
+      aes(x = target_end_date, y = `0.5`)
+    ) +
+    geom_ribbon(
+      data = df_quantiles_wide,
+      aes(
+        x = target_end_date,
+        ymin = `0.25`,
+        ymax = `0.75`
+      ),
+      alpha = 0.2
+    ) +
+    geom_ribbon(
+      data = df_quantiles_wide,
+      aes(
+        x = target_end_date,
+        ymin = `0.025`,
+        ymax = `0.975`
+      ),
+      alpha = 0.2
+    ) +
+    xlab("") +
+    ylab(target) +
+    ggtitle("Dynamic GAM forecasts") +
+    theme_bw()
+
+  dir_create(file.path(fp_figs, forecast_date, model_run_location))
+  ggsave(
+    plot = plot_quantiles,
+    filename = file.path(
+      fp_figs, forecast_date, model_run_location,
+      glue::glue("forecast_quantiles.png")
+    )
+  )
+
+  return(plot_quantiles)
+}

@@ -1,37 +1,48 @@
 format_forecasts <- function(df_weekly,
-                             pred_type = "count",
-                             target = "ILI ED visits") {
+                             reference_date,
+                             quantiles_to_submit = c(0.025, 0.05, 0.10, 0.25, 0.50, 0.75, 0.90, 0.95, 0.975)) {
+  target <- unique(df_weekly$target)[!is.na(unique(df_weekly$target))]
+
+
+  max_data_date <- df_weekly |>
+    filter(!is.na(observation)) |>
+    mutate(max_data_date = max(target_end_date)) |>
+    pull(max_data_date)
+
   df_weekly_quantiled <- df_weekly |>
-    forecasttools::trajectories_to_quantiles(
-      quantiles = c(0.025, 0.05, 0.10, 0.25, 0.50, 0.75, 0.90, 0.95, 0.975),
-      timepoint_cols = c("target_end_date"),
-      value_col = {{ pred_type }},
-      id_cols = c(
-        "location", "reference_date",
-        "horizon", "obs_data",
-        "max_data_date"
-      )
-    ) |>
+    filter(target_end_date >= ymd(reference_date) - days(90)) |>
+    mutate(horizon = floor(as.integer(ymd(target_end_date) - reference_date)) / 7)
+  forecasttools::trajectories_to_quantiles(
+    quantiles = quantiles_to_submit,
+    timepoint_cols = c("target_end_date"),
+    value_col = "value",
+    id_cols = c(
+      "location",
+      "horizon", "observation"
+    )
+  ) |>
     mutate(
       output_type = "quantile",
       target = {{ target }},
-      location = ifelse(location == "Citywide", "NYC", location)
+      reference_date = reference_date,
+      max_data_date = max_data_date
     ) |>
     rename(
       output_type_id = quantile_level,
       value = quantile_value
     ) |>
     select(
-      reference_date, location, horizon, obs_data,
-      target, target_end_date, max_data_date,
-      output_type, output_type_id, value
+      reference_date, location, horizon, observation,
+      target, target_end_date,
+      output_type, output_type_id, value,
+      max_data_date
     )
 
-  if (pred_type == "pct") {
+  if (str_detect(target, "pct")) {
     df_weekly_quantiled <- df_weekly_quantiled |>
       mutate(
         value = 100 * value,
-        obs_data = 100 * obs_data
+        observation = 100 * observation
       )
   }
 

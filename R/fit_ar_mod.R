@@ -13,26 +13,28 @@ fit_ar_mod <- function(model_data,
     mutate(series = as.factor(location)) |>
     select(time, target_end_date, observation, series, location, year, season, week)
 
+  if (length(unique(model_data_fit$series)) > 1) {
+    trend_formula <-
+      # Hierarchical intercepts capture variation in average count
+      ~ s(trend, bs = "re") +
+        # Hierarchical effects of year(shared smooth)
+        # s(year, k = 3) +
+        # # Borough level deviations
+        # s(year, trend, bs = "sz", k = 3) -1 +
+
+        # Hierarchical effects of seasonality (not time varying for now)
+        s(week, k = 12, bs = "cc") +
+        # Location level deviations
+        s(week, k = 12, bs = "cc", by = trend) - 1
+  } else {
+    # Single location: no hierarchical structure needed
+    trend_formula <- ~ s(week, k = 12, bs = "cc")
+  }
+
+
   if (str_detect(target, "pct")) {
     model_data_fit <- model_data_fit |>
       mutate(observation = ifelse(observation == 0, 1e-10, observation))
-    if (length(unique(model_data_fit$series)) > 1) {
-      trend_formula <-
-        # Hierarchical intercepts capture variation in average count
-        ~ s(trend, bs = "re") +
-          # Hierarchical effects of year(shared smooth)
-          # s(year, k = 3) +
-          # # Borough level deviations
-          # s(year, trend, bs = "sz", k = 3) -1 +
-
-          # Hierarchical effects of seasonality (not time varying for now)
-          s(week, k = 12, bs = "cc") +
-          # Location level deviations
-          s(week, k = 12, bs = "cc", by = trend) - 1
-    } else {
-      # Single location: no hierarchical structure needed
-      trend_formula <- ~ s(week, k = 12, bs = "cc")
-    }
     # Multiple locations
     ar_mod <- mvgam(
       # Observation formula, empty to only consider the Gamma observation process
@@ -56,12 +58,12 @@ fit_ar_mod <- function(model_data,
       backend = "cmdstanr",
       family = betar()
     )
-  } else{
+  } else {
     # Target is not a proportion but a count -- need a Poisson observation model
     ar_mod <- mvgam(
       # Observation formula, empty to only consider the Gamma observation process
       formula = observation ~ -1,
-      
+
       # Process model formula that includes regional intercepts
       trend_formula = trend_formula,
       knots = list(week = c(1, 52)),
@@ -69,7 +71,7 @@ fit_ar_mod <- function(model_data,
       # Adjust the priors
       priors = c(
         prior(normal(-4.5, 1),
-              class = mu_raw_trend
+          class = mu_raw_trend
         ),
         prior(exponential(0.33), class = sigma_raw_trend),
         prior(exponential(1), class = sigma),
