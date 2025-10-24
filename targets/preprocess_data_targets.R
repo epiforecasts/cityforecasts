@@ -35,8 +35,7 @@ preprocess_data_targets <- list(
   ),
   tar_group_by(
     name = model_data_grouped,
-    command = model_data |> filter(model_run_location %in%
-      c("Colorado", "CO")),
+    command = model_data ,
     by = model_run_location
   ),
   tar_target(
@@ -48,8 +47,7 @@ preprocess_data_targets <- list(
   ),
   tar_group_by(
     name = forecast_data_grouped,
-    command = forecast_data |> filter(model_run_location %in%
-      c("Colorado", "CO")),
+    command = forecast_data,
     by = model_run_location
   )
 )

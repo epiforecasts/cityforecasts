@@ -3,7 +3,7 @@ fit_ar_mod <- function(model_data,
                        fp_base,
                        forecast_date) {
   model_run_location <- unique(model_data$model_run_location)
-  target <- unique(model_data$target)
+  target <- unique(model_data$target)[!is.na(unique(model_data$target))]
 
   model_data_fit <- model_data |>
     mutate(series = as.factor(location)) |>
@@ -55,6 +55,30 @@ fit_ar_mod <- function(model_data,
       newdata = forecast_data_fit,
       backend = "cmdstanr",
       family = betar()
+    )
+  } else{
+    # Target is not a proportion but a count -- need a Poisson observation model
+    ar_mod <- mvgam(
+      # Observation formula, empty to only consider the Gamma observation process
+      formula = observation ~ -1,
+      
+      # Process model formula that includes regional intercepts
+      trend_formula = trend_formula,
+      knots = list(week = c(1, 52)),
+      trend_model = "AR1",
+      # Adjust the priors
+      priors = c(
+        prior(normal(-4.5, 1),
+              class = mu_raw_trend
+        ),
+        prior(exponential(0.33), class = sigma_raw_trend),
+        prior(exponential(1), class = sigma),
+        prior(normal(0.5, 0.25), class = ar1, lb = 0, ub = 1)
+      ),
+      data = model_data_fit,
+      newdata = forecast_data_fit,
+      backend = "cmdstanr",
+      family = poisson()
     )
   }
 
