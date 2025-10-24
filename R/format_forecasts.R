@@ -1,39 +1,72 @@
 format_forecasts <- function(df_weekly,
-                             pred_type = "count",
-                             target = "ILI ED visits") {
+                             reference_date,
+                             quantiles_to_submit = c(0.025, 0.05, 0.10, 0.25, 0.50, 0.75, 0.90, 0.95, 0.975)) {
+  target <- unique(df_weekly$target)[!is.na(unique(df_weekly$target))]
+  model_run_location <- unique(df_weekly$model_run_location)
+
+  max_data_date <- df_weekly |>
+    filter(!is.na(observation)) |>
+    summarise(max_data_date = max(target_end_date)) |>
+    distinct() |>
+    pull(max_data_date)
+
   df_weekly_quantiled <- df_weekly |>
+    filter(target_end_date >= ymd(reference_date) - days(90)) |>
+    mutate(horizon = floor(as.integer(ymd(target_end_date) - reference_date)) / 7) |>
     forecasttools::trajectories_to_quantiles(
-      quantiles = c(0.025, 0.05, 0.10, 0.25, 0.50, 0.75, 0.90, 0.95, 0.975),
+      quantiles = quantiles_to_submit,
       timepoint_cols = c("target_end_date"),
-      value_col = {{ pred_type }},
+      value_col = "value",
       id_cols = c(
-        "location", "reference_date",
-        "horizon", "obs_data",
-        "max_data_date"
+        "location",
+        "horizon", "observation"
       )
     ) |>
     mutate(
       output_type = "quantile",
       target = {{ target }},
-      location = ifelse(location == "Citywide", "NYC", location)
+      reference_date = reference_date,
+      max_data_date = max_data_date,
+      model_run_location = model_run_location
     ) |>
     rename(
       output_type_id = quantile_level,
       value = quantile_value
     ) |>
     select(
-      reference_date, location, horizon, obs_data,
-      target, target_end_date, max_data_date,
-      output_type, output_type_id, value
+      reference_date, location, horizon, observation,
+      target, target_end_date,
+      output_type, output_type_id, value,
+      max_data_date,
+      model_run_location
     )
 
-  if (pred_type == "pct") {
+  if (str_detect(target, "pct")) {
     df_weekly_quantiled <- df_weekly_quantiled |>
       mutate(
         value = 100 * value,
-        obs_data = 100 * obs_data
+        observation = 100 * observation
       )
   }
 
   return(df_weekly_quantiled)
+}
+
+save_quantiles <- function(df_for_submission,
+                           forecast_date,
+                           reference_date,
+                           filepath_forecasts) {
+  dir_create(
+    filepath_forecasts,
+    forecast_date
+  )
+  write.csv(
+    df_for_submission,
+    file.path(
+      filepath_forecasts,
+      forecast_date,
+      glue::glue("{reference_date}-epiforecasts-dyngam.csv")
+    )
+  )
+  return(NULL)
 }

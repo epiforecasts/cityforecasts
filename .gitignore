@@ -13,6 +13,7 @@
 
 # Targets
 _targets/
+_targets/meta/meta
 
 #Other
 *.DS_Store

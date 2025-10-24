@@ -72,9 +72,14 @@ fit_models <- list(
   fit_model_targets
 )
 
+post_processing <- list(
+  post_processing_targets
+)
+
 list(
   set_up,
   load_data,
   preprocess_data,
-  fit_models
+  fit_models,
+  post_processing_targets
 )
