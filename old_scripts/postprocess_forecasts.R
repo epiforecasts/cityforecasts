@@ -54,7 +54,7 @@ for (i in seq_along(config$regions_to_fit)) {
     fp_mod,
     glue::glue("{config$model_filename[index]}.rda")
   ))
-  
+
   fp_figs <- file.path(
     "output",
     "figures",
@@ -67,8 +67,8 @@ for (i in seq_along(config$regions_to_fit)) {
     config$forecast_date
   )
   fs::dir_create(fp_forecasts, recurse = TRUE)
-  
-  
+
+
   # Use tidybayes to get a long tiy dataframe of draws
   forecast_obj <- forecast(ar_mod, newdata = forecast_data, type = "response")
   dfall <- make_long_pred_df(
@@ -77,14 +77,14 @@ for (i in seq_along(config$regions_to_fit)) {
     pred_type = config$pred_type[index],
     timestep = config$timestep_data[index]
   )
-  
-  
+
+
   sampled_draws <- sample(1:max(dfall$draw), 100)
-  
+
   df_recent <- dfall |> filter(
     date >= ymd(config$forecast_date) - days(90)
   )
-  
+
   # need to add NYC and remove unknown for NYC forecasts
   if (config$regions_to_fit[index] == "NYC" && !"NYC" %in% unique(df_recent$location)) { # nolint
     nyc_sum <- df_recent |>
@@ -95,17 +95,17 @@ for (i in seq_along(config$regions_to_fit)) {
       ) |>
       mutate(location = "NYC") |>
       left_join(df_recent |>
-                  select(date, t, period) |> # nolint
-                  distinct(), by = "date") |>
+        select(date, t, period) |> # nolint
+        distinct(), by = "date") |>
       select(colnames(df_recent))
-    
+
     df_recent <- df_recent |>
       filter(location != "Unknown") |>
       bind_rows(nyc_sum) |>
       arrange(date)
   }
-  
-  
+
+
   plot_draws <- ggplot(df_recent |> filter(
     draw %in% c(sampled_draws)
   )) +
@@ -131,7 +131,7 @@ for (i in seq_along(config$regions_to_fit)) {
     plot = plot_draws,
     filename = file.path(fp_figs, "forecast_draws.png")
   )
-  
+
   if (config$timestep_data[index] != "week") {
     df_weekly <- daily_to_epiweekly_data(df_recent, config$forecast_date)
     if (!all(df_weekly$n_days_data[df_weekly$horizon >= 0] == 7)) { # nolint
@@ -159,14 +159,14 @@ for (i in seq_along(config$regions_to_fit)) {
       ) |>
       arrange(target_end_date)
   }
-  
-  
-  
+
+
+
   df_weekly_quantiled <- format_forecasts(df_weekly,
-                                          pred_type = config$pred_type[index],
-                                          target = config$targets[index]
+    pred_type = config$pred_type[index],
+    target = config$targets[index]
   )
-  
+
   df_quantiles_wide <- df_weekly_quantiled |>
     filter(
       target_end_date >= max_data_date,
@@ -176,9 +176,9 @@ for (i in seq_along(config$regions_to_fit)) {
       id_cols = c("location", "target_end_date"),
       names_from = "output_type_id"
     )
-  
-  
-  
+
+
+
   plot_quantiles <-
     ggplot() +
     geom_line(
@@ -225,7 +225,7 @@ for (i in seq_along(config$regions_to_fit)) {
     ylab({{ config$targets[index] }}) +
     ggtitle("Dynamic GAM forecasts") +
     theme_bw()
-  
+
   ggsave(
     plot = plot_quantiles,
     filename = file.path(fp_figs, "quantiled_forecasts.png")
@@ -236,7 +236,7 @@ for (i in seq_along(config$regions_to_fit)) {
       reference_date, location, horizon, target, target_end_date,
       output_type, output_type_id, value
     )
-  
+
   if (index == 1) {
     df_to_save <- df_for_submission
   } else {
