@@ -15,7 +15,7 @@ create_config_targets <- list( # nolint
   ),
   tar_target(
     name = filepath_forecasts,
-    command = "test_cityforecasts"
+    command = "output/test_cityforecasts"
   ),
   tar_target(
     name = exclude_covid,
@@ -107,7 +107,6 @@ create_config_targets <- list( # nolint
   tar_target(
     name = create_path,
     command = fs::dir_create(file.path(
-      "output",
       filepath_forecasts,
       forecast_date
     ))
@@ -116,7 +115,6 @@ create_config_targets <- list( # nolint
     name = save_config,
     command = yaml::write_yaml(config,
       file = file.path(
-        "output",
         filepath_forecasts,
         forecast_date,
         "config.yaml"

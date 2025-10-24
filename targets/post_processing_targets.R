@@ -1,7 +1,10 @@
 post_processing_targets <- list(
   tar_target(
     name = df_quantiled,
-    command = format_forecasts(df_recent, reference_date),
+    command = format_forecasts(
+      model_draws,
+      reference_date
+    ),
     pattern = map(model_draws)
   ),
   tar_target(
@@ -26,7 +29,9 @@ post_processing_targets <- list(
       fp_figs = file.path("output", "figures"),
       forecast_date = forecast_date
     ),
-    pattern = map(df_quantiled, df_quantiles_wide)
+    pattern = map(df_quantiled, df_quantiles_wide),
+    format = "rds",
+    iteration = "list"
   ),
   tar_target(
     name = df_for_submission,
@@ -39,13 +44,11 @@ post_processing_targets <- list(
   ),
   tar_target(
     name = save_submission,
-    command = write.csv(
+    command = save_quantiles(
       df_for_submission,
-      file.path(
-        filepath_forecasts,
-        forecast_date,
-        glue::glue("{reference_date}-epiforecasts-dyngam.csv")
-      )
+      forecast_date,
+      reference_date,
+      filepath_forecasts
     )
   )
 )

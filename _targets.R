@@ -80,5 +80,6 @@ list(
   set_up,
   load_data,
   preprocess_data,
-  fit_models
+  fit_models,
+  post_processing_targets
 )

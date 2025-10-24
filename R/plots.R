@@ -83,21 +83,21 @@ get_plot_quantiles <- function(df_quantiled,
   plot_quantiles <-
     ggplot() +
     geom_line(
-      data = df_weekly_quantiled |>
+      data = df_quantiled |>
         filter(
           target_end_date >= reference_date - weeks(10),
           target_end_date < reference_date
         ),
-      aes(x = target_end_date, y = obs_data),
+      aes(x = target_end_date, y = observation),
       linetype = "dashed"
     ) +
     geom_point(
-      data = df_weekly_quantiled |>
+      data = df_quantiled |>
         filter(
           target_end_date >= reference_date - weeks(10),
           target_end_date < reference_date
         ),
-      aes(x = target_end_date, y = obs_data)
+      aes(x = target_end_date, y = observation)
     ) +
     facet_wrap(~location, scales = "free_y") +
     geom_line(
