@@ -10,7 +10,7 @@ If significant changes to the model are made during submission, we will rename t
 
 Since the Hub now solicits both local level and aggregate (typically state-level) forecasts of the specified target (typically the percent of ED visits due to flu), we will:
 - run each set of local jurisdictions within an aggregate location jointly
-- run each aggregate location (typically state) independently using the aggregate location-level data
+- run each aggregate location (typically state) independently using the aggregate data
 
 A table of all the locations being solicited is available at the [flu-metrocast hub GitHub](https://github.com/reichlab/flu-metrocast).
 
