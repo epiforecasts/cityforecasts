@@ -35,7 +35,7 @@ preprocess_data_targets <- list(
   ),
   tar_group_by(
     name = model_data_grouped,
-    command = model_data ,
+    command = model_data,
     by = model_run_location
   ),
   tar_target(

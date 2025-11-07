@@ -26,20 +26,25 @@ load_data_targets <- list(
   tar_target(
     name = all_nyc_data,
     command = read_csv(nyc_data_url) |>
-      filter(as_of == max(as_of))
+      filter(as_of == max(as_of)) |>
+      mutate(location = tolower(location)) |>
+      mutate(location = ifelse(location == "staten island", "staten-island",
+        location
+      ))
   ),
   tar_target(
     name = all_local_fips_data,
     command = all_nyc_data |>
-      filter(tolower(location) %in% c(location_data_local_fips$location)) |>
-      mutate(agg_location = "NYC") |>
-      select(target_end_date, location, agg_location, observation, target)
+      filter(location %in% c(location_data_local_fips$location)) |>
+      mutate(model_run_location = "NYC") |>
+      select(target_end_date, location, model_run_location, observation, target)
   ),
   tar_target(
     name = nycwide_data,
     command = all_nyc_data |>
-      filter(location == "NYC") |>
-      select(target_end_date, location, observation, target)
+      filter(location == "nyc") |>
+      mutate(model_run_location = glue::glue("{location}_wide")) |>
+      select(target_end_date, location, model_run_location, observation, target)
   ),
   # Combine the state/aggregate level data ---------------------------------
   tar_target(
@@ -47,14 +52,21 @@ load_data_targets <- list(
     command = all_state_data |>
       rename(
         target_end_date = time_value,
-        location = geo_value,
+        state_abb = geo_value,
         observation = value
       ) |>
       mutate(
-        location = toupper(location),
+        state_abb = toupper(state_abb),
         target = "Flu ED visits pct"
       ) |>
-      select(target_end_date, location, observation, target)
+      left_join(
+        location_data |>
+          filter(original_location_code == "All") |>
+          select(location, state_abb),
+        by = "state_abb"
+      ) |>
+      mutate(model_run_location = glue::glue("{state_abb}_state")) |>
+      select(target_end_date, location, model_run_location, observation, target)
   ),
   tar_target(
     name = agg_level_data,
@@ -80,23 +92,23 @@ load_data_targets <- list(
     command = all_local_hsa_data |>
       rename(
         target_end_date = week_end,
-        location = hsa,
-        agg_location = geography,
         observation = percent_visits_influenza
       ) |>
       mutate(
         target = "Flu ED visits pct"
+      ) |> left_join(
+        location_data |>
+          select(state_abb, location, original_location_code),
+        by = c("hsa_nci_id" = "original_location_code")
       ) |>
-      select(target_end_date, location, agg_location, observation, target)
+      mutate(model_run_location = state_abb) |>
+      select(target_end_date, location, model_run_location, observation, target)
   ),
   tar_target(
     name = local_data,
     command = bind_rows(hsa_data_clean, all_local_fips_data) |>
       filter(target_end_date < forecast_date) |>
-      distinct() |>
-      mutate(agg_location = ifelse(agg_location == "NYC",
-        "New York City", agg_location
-      ))
+      distinct()
   ),
   tar_target(
     name = local_data_to_model,
@@ -113,12 +125,12 @@ load_data_targets <- list(
   tar_group_by(
     name = local_data_by_agg,
     command = local_data_to_model,
-    by = agg_location
+    by = model_run_location
   ),
   tar_group_by(
     name = state_data_by_agg,
     command = state_data_to_model,
-    by = location
+    by = model_run_location
   ),
   tar_target(
     name = fp_figs,
