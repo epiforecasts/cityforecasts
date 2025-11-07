@@ -4,7 +4,7 @@ get_plot_data <- function(data,
                           fig_name) {
   agg_location <- ifelse("agg_location" %in% colnames(data),
     unique(data$agg_location),
-    unique(data$location)
+    unique(data$model_run_location)
   )
   target <- unique(data$target)
   p <- ggplot(data) +
