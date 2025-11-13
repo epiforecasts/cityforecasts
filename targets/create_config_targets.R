@@ -31,7 +31,7 @@ create_config_targets <- list( # nolint
   ),
   tar_target(
     name = locations_csv_path,
-    command = "input/locations.csv"
+    command = "https://raw.githubusercontent.com/reichlab/flu-metrocast/refs/heads/main/auxiliary-data/locations.csv"
   ),
   # This is the table of all the locations we need to forecast
   tar_target(
@@ -88,7 +88,7 @@ create_config_targets <- list( # nolint
   ),
   tar_target(
     name = locations_forecasted,
-    command = location_data$location_name
+    command = location_data$location
   ),
   tar_target(
     name = config,

@@ -11,61 +11,72 @@ forecast_horizons:
 - 4
 real_time: no
 locations_forecasted:
-- Denver, CO
-- Mesa, CO
-- Colorado Springs, CO
-- Weld, CO
-- Boulder, CO
-- Larimer, CO
-- Colorado
-- Indianapolis, IN
-- Indiana
-- Bangor, ME
-- Portland, ME
-- Maine
-- Baltimore, MD
-- Frederick, MD
-- Montgomery, MD
-- Harford, MD
-- Maryland
-- Worcester, MA
-- Pittsfield, MA
-- Boston, MA
-- Springfield, MA
-- New Bedford, MA
-- Lynn, MA
-- Massachusetts
-- St. Paul, MN
-- Duluth, MN
-- Minneapolis, MN
-- St. Cloud, MN
-- Rochester, MN
-- Minnesota
-- Fayetteville, NC
-- Columbia, SC
-- Greenville, SC
-- Florence, SC
-- Charleston, SC
-- Rock Hill, SC
-- Horry, SC
-- South Carolina
-- Houston, TX
-- San Antonio, TX
-- Beaumont, TX
-- El Paso, TX
-- Austin, TX
-- Dallas, TX
-- Texas
-- Provo, UT
-- Salt Lake City, UT
-- Ogden, UT
-- Utah
-- Roanoke City, VA
-- Virginia
-- Bronx, NY
-- Brooklyn, NY
-- Manhattan, NY
-- Queens, NY
-- Staten Island, NY
-- NYC
+- denver
+- mesa
+- colorado-springs
+- weld
+- boulder
+- larimer
+- colorado
+- savannah
+- floyd
+- hall
+- marietta
+- macon
+- henry
+- cherokee
+- athens
+- south-augusta
+- columbus
+- la-grange
+- georgia
+- indianapolis
+- indiana
+- bangor
+- portland
+- maine
+- baltimore
+- frederick
+- montgomery
+- harford
+- maryland
+- worcester
+- pittsfield
+- boston
+- springfield
+- new-bedford
+- lynn
+- massachusetts
+- st-paul
+- duluth
+- minneapolis
+- st-cloud
+- rochester
+- minnesota
+- columbia
+- greenville
+- florence
+- charleston
+- rock-hill
+- horry
+- south-carolina
+- houston
+- san-antonio
+- beaumont
+- el-paso
+- austin
+- dallas
+- texas
+- provo
+- salt-lake-city
+- ogden
+- utah
+- roanoke
+- virginia
+- bronx
+- brooklyn
+- manhattan
+- queens
+- staten-island
+- nyc
 for_submission: no

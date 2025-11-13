@@ -1,9 +1,5 @@
 preprocess_clean_data <- function(data) {
-  agg_location <- ifelse("agg_location" %in% colnames(data),
-    unique(data$agg_location),
-    unique(data$location)
-  )
-
+  model_run_location <- unique(data$model_run_location)[!is.na(unique(data$model_run_location))]
   model_data <- data |>
     group_by(location) |>
     tidyr::complete(target_end_date = seq(min(target_end_date),
@@ -22,9 +18,10 @@ preprocess_clean_data <- function(data) {
     ) |>
     select(
       time, target_end_date,
-      observation, location, year, season, week, target
+      observation, location,
+      year, season, week, target
     ) |>
-    mutate(model_run_location = agg_location)
+    mutate(model_run_location = model_run_location)
 
   if (str_detect(unique(data$target), "pct")) {
     model_data <- model_data |>
