@@ -45,6 +45,10 @@ create_config_targets <- list( # nolint
       distinct()
   ),
   tar_target(
+    name = latest_data_url,
+    command = "https://raw.githubusercontent.com/reichlab/flu-metrocast/refs/heads/main/target-data/latest-data.csv"
+  ),
+  tar_target(
     name = nssp_raw_data_url,
     command = "https://raw.githubusercontent.com/CDCgov/covid19-forecast-hub/refs/heads/main/auxiliary-data/nssp-raw-data/latest.csv" # nolint
   ),
