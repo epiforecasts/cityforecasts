@@ -119,7 +119,7 @@ load_data_targets <- list(
             ymd(covid_exclusion_period[2]))
       )
     } else {
-      agg_level_data
+      local_data
     }
   ),
   tar_group_by(
