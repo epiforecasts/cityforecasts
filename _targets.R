@@ -50,7 +50,7 @@ tar_option_set(
   memory = "transient",
   garbage_collection = TRUE,
   format = "parquet", # default storage format
-  error = "null"
+  error = NULL
 )
 
 
@@ -61,8 +61,8 @@ set_up <- list(
 
 # Load in the data for each location
 load_data <- list(
-  # load_data_targets
-  load_data_targets_alt
+  load_data_targets
+  # load_data_targets_alt
 )
 
 preprocess_data <- list(

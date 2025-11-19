@@ -26,12 +26,10 @@ preprocess_data_targets <- list(
     ),
     pattern = map(processed_state_data)
   ),
+  # Remove state data as it is not updated
   tar_target(
     name = model_data,
-    command = bind_rows(
-      processed_state_data,
-      processed_local_data
-    )
+    command = processed_local_data
   ),
   tar_group_by(
     name = model_data_grouped,
@@ -40,10 +38,8 @@ preprocess_data_targets <- list(
   ),
   tar_target(
     name = forecast_data,
-    command = bind_rows(
-      processed_state_forecast_data,
+    command =
       processed_local_forecast_data
-    )
   ),
   tar_group_by(
     name = forecast_data_grouped,
