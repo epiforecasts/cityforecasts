@@ -56,6 +56,8 @@ save_quantiles <- function(df_for_submission,
                            forecast_date,
                            reference_date,
                            filepath_forecasts) {
+  df_for_submission <- df_for_submission |>
+    filter(horizon >= 0)
   dir_create(
     filepath_forecasts,
     forecast_date
