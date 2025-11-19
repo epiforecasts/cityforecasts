@@ -66,7 +66,8 @@ save_quantiles <- function(df_for_submission,
       filepath_forecasts,
       forecast_date,
       glue::glue("{reference_date}-epiforecasts-dyngam.csv")
-    )
+    ),
+    row.names = FALSE
   )
   return(NULL)
 }
