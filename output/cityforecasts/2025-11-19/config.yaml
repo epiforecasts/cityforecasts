@@ -8,8 +8,7 @@ forecast_horizons:
 - 1
 - 2
 - 3
-- 4
-real_time: no
+real_time: yes
 locations_forecasted:
 - denver
 - mesa
@@ -82,4 +81,4 @@ locations_forecasted:
 - wnc
 - clt-area
 - north-carolina
-for_submission: no
+for_submission: yes

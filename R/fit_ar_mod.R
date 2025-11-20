@@ -40,7 +40,6 @@ fit_ar_mod <- function(model_data,
     model_data_fit <- model_data_fit |>
       mutate(observation = ifelse(observation == 0, 1e-10, observation))
 
-    model_data_fit <- model_data_fit
     # Multiple locations
     ar_mod <- mvgam(
       # Observation formula, empty to only consider the Gamma observation process

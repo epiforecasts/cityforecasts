@@ -11,7 +11,7 @@ create_config_targets <- list( # nolint
   ),
   tar_target(
     name = real_time,
-    command = FALSE
+    command = TRUE
   ),
   tar_target(
     name = filepath_forecasts,
@@ -27,7 +27,7 @@ create_config_targets <- list( # nolint
   ),
   tar_target(
     name = forecast_horizons,
-    command = 0:4
+    command = 0:3
   ),
   tar_target(
     name = locations_csv_path,
