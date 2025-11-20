@@ -7,7 +7,11 @@ fit_ar_mod <- function(model_data,
 
   model_data_fit <- model_data |>
     mutate(series = as.factor(location)) |>
-    select(time, target_end_date, observation, series, location, year, season, week)
+    select(time, target_end_date, observation, series, location, year, season, week) |>
+    group_by(target_end_date) |>
+    mutate(observation = mean(observation)) |>
+    ungroup() |>
+    distinct()
 
   forecast_data_fit <- forecast_data |>
     mutate(series = as.factor(location)) |>
@@ -35,6 +39,7 @@ fit_ar_mod <- function(model_data,
   if (str_detect(target, "pct")) {
     model_data_fit <- model_data_fit |>
       mutate(observation = ifelse(observation == 0, 1e-10, observation))
+
     # Multiple locations
     ar_mod <- mvgam(
       # Observation formula, empty to only consider the Gamma observation process

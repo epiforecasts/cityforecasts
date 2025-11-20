@@ -3,13 +3,12 @@ load_data_targets_alt <- list(
   tar_target(
     name = all_data,
     command = read_csv(latest_data_url) |>
-      left_join(location_data, by = "location") |>
-      rename(observation = oracle_value)
+      left_join(location_data, by = "location")
   ),
   tar_target(
     name = latest_data,
     command = if (exclude_covid) {
-      all_level_data |> filter(
+      all_data |> filter(
         !(target_end_date > ymd(covid_exclusion_period[1]) &
           target_end_date <
             ymd(covid_exclusion_period[2]))

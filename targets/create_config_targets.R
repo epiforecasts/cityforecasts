@@ -3,7 +3,7 @@ create_config_targets <- list( # nolint
   # Retrospective forecast date from last season
   tar_target(
     name = forecast_date,
-    command = "2025-05-21" # Wednesday forecast date
+    command = "2025-11-19" # Wednesday forecast date
   ),
   tar_target(
     name = reference_date,
@@ -11,11 +11,11 @@ create_config_targets <- list( # nolint
   ),
   tar_target(
     name = real_time,
-    command = FALSE
+    command = TRUE
   ),
   tar_target(
     name = filepath_forecasts,
-    command = "output/test_cityforecasts"
+    command = "output/cityforecasts"
   ),
   tar_target(
     name = exclude_covid,
@@ -27,7 +27,7 @@ create_config_targets <- list( # nolint
   ),
   tar_target(
     name = forecast_horizons,
-    command = 0:4
+    command = 0:3
   ),
   tar_target(
     name = locations_csv_path,

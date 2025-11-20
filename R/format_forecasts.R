@@ -56,6 +56,8 @@ save_quantiles <- function(df_for_submission,
                            forecast_date,
                            reference_date,
                            filepath_forecasts) {
+  df_for_submission <- df_for_submission |>
+    filter(horizon >= 0, horizon <= 3)
   dir_create(
     filepath_forecasts,
     forecast_date
@@ -66,7 +68,8 @@ save_quantiles <- function(df_for_submission,
       filepath_forecasts,
       forecast_date,
       glue::glue("{reference_date}-epiforecasts-dyngam.csv")
-    )
+    ),
+    row.names = FALSE
   )
   return(NULL)
 }
