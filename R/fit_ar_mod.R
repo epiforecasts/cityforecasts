@@ -8,7 +8,7 @@ fit_ar_mod <- function(model_data,
   model_data_fit <- model_data |>
     mutate(series = as.factor(location)) |>
     select(time, target_end_date, observation, series, location, year, season, week) |>
-    group_by(target_end_date) |>
+    group_by(target_end_date, location) |>
     mutate(observation = mean(observation)) |>
     ungroup() |>
     distinct()
