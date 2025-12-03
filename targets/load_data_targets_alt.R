@@ -1,9 +1,13 @@
 load_data_targets_alt <- list(
   # Targets to run if using the latest_data directly (the simplest)
+  # Excludes and locations that are out of date by a week
   tar_target(
     name = all_data,
     command = read_csv(latest_data_url) |>
-      left_join(location_data, by = "location")
+      left_join(location_data, by = "location") |>
+      group_by(location) |>
+      filter(max(target_end_date) >= ymd(forecast_date) - days(4)) |>
+      ungroup()
   ),
   tar_target(
     name = latest_data,
