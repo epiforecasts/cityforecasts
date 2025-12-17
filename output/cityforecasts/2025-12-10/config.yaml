@@ -1,5 +1,5 @@
-forecast_date: '2025-05-21'
-reference_date: 20232.0
+forecast_date: '2025-12-10'
+reference_date: 20435.0
 team_name: epiforecasts
 model_name: dyngam
 exclude_covid: yes
@@ -8,8 +8,7 @@ forecast_horizons:
 - 1
 - 2
 - 3
-- 4
-real_time: no
+real_time: yes
 locations_forecasted:
 - denver
 - mesa
@@ -73,10 +72,13 @@ locations_forecasted:
 - utah
 - roanoke
 - virginia
-- bronx
-- brooklyn
-- manhattan
-- queens
-- staten-island
 - nyc
-for_submission: no
+- nenc
+- senc
+- fay-area
+- rtp-area
+- triad-area
+- wnc
+- clt-area
+- north-carolina
+for_submission: yes
