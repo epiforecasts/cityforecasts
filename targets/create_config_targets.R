@@ -3,7 +3,7 @@ create_config_targets <- list( # nolint
   # Retrospective forecast date from last season
   tar_target(
     name = forecast_date,
-    command = "2026-02-25" # Wednesday forecast date
+    command = "2026-03-04" # Wednesday forecast date
   ),
   tar_target(
     name = reference_date,
@@ -31,7 +31,7 @@ create_config_targets <- list( # nolint
   ),
   tar_target(
     name = locations_csv_path,
-    command = "https://raw.githubusercontent.com/reichlab/flu-metrocast/refs/heads/main/auxiliary-data/locations.csv"
+    command = "https://raw.githubusercontent.com/reichlab/flu-metrocast/refs/heads/main/auxiliary-data/locations.csv" # nolint
   ),
   # This is the table of all the locations we need to forecast
   tar_target(
@@ -46,7 +46,7 @@ create_config_targets <- list( # nolint
   ),
   tar_target(
     name = latest_data_url,
-    command = "https://raw.githubusercontent.com/reichlab/flu-metrocast/refs/heads/main/target-data/latest-data.csv"
+    command = "https://raw.githubusercontent.com/reichlab/flu-metrocast/refs/heads/main/target-data/latest-data.csv" # nolint
   ),
   tar_target(
     name = nssp_raw_data_url,
@@ -54,7 +54,7 @@ create_config_targets <- list( # nolint
   ),
   tar_target(
     name = nyc_data_url,
-    command = "https://raw.githubusercontent.com/reichlab/flu-metrocast/refs/heads/main/target-data/time-series.csv"
+    command = "https://raw.githubusercontent.com/reichlab/flu-metrocast/refs/heads/main/target-data/time-series.csv" # nolint
   ),
   tar_target(
     name = loc_data_w_state_code,
