@@ -3,7 +3,7 @@ create_config_targets <- list( # nolint
   # Retrospective forecast date from last season
   tar_target(
     name = forecast_date,
-    command = "2026-04-29" # Wednesday forecast date
+    command = "2026-05-13" # Wednesday forecast date
   ),
   tar_target(
     name = reference_date,
