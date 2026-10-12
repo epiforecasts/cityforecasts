@@ -94,11 +94,15 @@ Rscript -e 'targets::tar_make()' \
 errored=$(Rscript -e 'cat(targets::tar_errored(), sep = " ")')
 [ -f "$output_file" ]] || fail "no forecast file at $output_file"
 
-# Render plots of the forecasts for review
+# Render plots of the forecasts for review as markdown + PNGs, which GitHub
+# renders natively (including on mobile)
 Rscript -e "rmarkdown::render('weekly_forecasts.Rmd',
-  output_file = 'review_${FORECAST_DATE}.html',
-  output_dir = 'output/cityforecasts/${FORECAST_DATE}')" \
+  output_format = rmarkdown::github_document(html_preview = FALSE),
+  output_file = 'review.md', output_dir = '${output_dir}')" \
   || fail "rendering weekly_forecasts.Rmd errored"
+# rmarkdown writes absolute figure paths when output_dir is elsewhere; make
+# them relative so they display on GitHub
+sed -i '' "s|${REPO_DIR}/${output_dir}/||g" "${output_dir}/review.md"
 
 if [[ -n "$errored" ]]; then
   echo "$(date): finished with errored targets: $errored"

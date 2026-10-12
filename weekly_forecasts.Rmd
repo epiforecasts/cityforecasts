@@ -1,15 +1,18 @@
 ---
-title: "weekly_forecasts"
+title: "Weekly forecasts"
 output: html_document
 ---
 
-```{r, echo = FALSE}
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE)
 library(targets)
 library(dplyr)
 library(tidyr)
 library(ggplot2)
 library(purrr)
 ```
+
+Forecast date: `r tar_read(forecast_date)`
 
 ```{r, fig.width=10, fig.height=6}
 plot_draws <- tar_read(plot_forecast_draws)
