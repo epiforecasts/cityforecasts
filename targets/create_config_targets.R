@@ -49,8 +49,8 @@ create_config_targets <- list( # nolint
   ),
   tar_target(
     name = hub_raw_url,
-    command = glue::glue(
-      "https://raw.githubusercontent.com/reichlab/flu-metrocast/{hub_ref}"
+    command = paste0(
+      "https://raw.githubusercontent.com/reichlab/flu-metrocast/", hub_ref
     )
   ),
   tar_target(
