@@ -16,9 +16,3 @@ plot_draws <- tar_read(plot_forecast_draws)
 
 walk(plot_draws, print)
 ```
-
-```{r, fig.width=10, fig.height=6}
-plot_quantiles <- tar_read(plot_quantiles)
-
-walk(plot_quantiles, print)
-```
