@@ -61,8 +61,7 @@ set_up <- list(
 
 # Load in the data for each location
 load_data <- list(
-  # load_data_targets
-  load_data_targets_alt
+  load_data_targets_from_hub
 )
 
 preprocess_data <- list(
