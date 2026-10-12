@@ -59,10 +59,9 @@ jobs:
 
       - uses: r-lib/actions/setup-r-dependencies@v2
         with:
-          extra-repositories: https://stan-dev.r-universe.dev
           packages: |
             any::arrow
-            any::cmdstanr
+            stan-dev/cmdstanr
             any::dplyr
             any::epidatr
             any::fs
