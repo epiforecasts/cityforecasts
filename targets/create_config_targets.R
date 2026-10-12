@@ -1,9 +1,19 @@
 create_config_targets <- list( # nolint
   # Config variables-----------------------------------------------------------
-  # Retrospective forecast date from last season
+  # Wednesday forecast date. Set via the FORECAST_DATE env var (YYYY-MM-DD),
+  # otherwise defaults to the most recent Wednesday in US Eastern time.
+  # Always rerun since targets does not track env var values; downstream
+  # targets only rebuild if the date changes.
   tar_target(
     name = forecast_date,
-    command = "2026-10-07" # Wednesday forecast date
+    command = Sys.getenv(
+      "FORECAST_DATE",
+      unset = as.character(floor_date(
+        today(tzone = "America/New_York"), "week",
+        week_start = 3
+      ))
+    ),
+    cue = tar_cue(mode = "always")
   ),
   tar_target(
     name = reference_date,
