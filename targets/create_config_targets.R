@@ -3,7 +3,7 @@ create_config_targets <- list( # nolint
   # Retrospective forecast date from last season
   tar_target(
     name = forecast_date,
-    command = "2026-05-20" # Wednesday forecast date
+    command = "2026-10-07" # Wednesday forecast date
   ),
   tar_target(
     name = reference_date,
@@ -83,12 +83,6 @@ create_config_targets <- list( # nolint
     name = location_data_local_fips,
     command = loc_data_w_state_code |>
       filter(location_type == "fips")
-  ),
-  # Aggregate locations that are not states---------------------------------
-  tar_target(
-    name = location_data_agg,
-    command = loc_data_w_state_code |>
-      filter(location == "nyc")
   ),
   tar_target(
     name = locations_forecasted,

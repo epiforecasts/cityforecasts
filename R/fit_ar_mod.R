@@ -3,6 +3,7 @@ fit_ar_mod <- function(model_data,
                        fp_base,
                        forecast_date) {
   model_run_location <- unique(model_data$model_run_location)
+  character_id <- unique(model_data$character_id)
   target <- unique(model_data$target)[!is.na(unique(model_data$target))]
 
   model_data_fit <- model_data |>
@@ -110,6 +111,7 @@ fit_ar_mod <- function(model_data,
   ) |>
     mutate(
       model_run_location = model_run_location,
+      character_id = character_id,
       target = target
     )
 

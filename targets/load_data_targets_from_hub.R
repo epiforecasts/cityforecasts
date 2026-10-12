@@ -1,4 +1,4 @@
-load_data_targets_alt <- list(
+load_data_targets_from_hub <- list(
   # Targets to run if using the latest_data directly (the simplest)
   # Excludes and locations that are out of date by a week
   tar_target(

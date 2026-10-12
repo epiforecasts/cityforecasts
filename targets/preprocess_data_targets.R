@@ -31,7 +31,7 @@ preprocess_data_targets <- list(
     command = bind_rows(
       processed_state_data,
       processed_local_data
-    )
+    ) |> mutate(character_id = c(letters, LETTERS)[as.integer(factor(model_run_location))])
   ),
   tar_group_by(
     name = model_data_grouped,

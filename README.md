@@ -24,7 +24,7 @@ These packages use metaprogramming to produce Stan files, and we also include th
 To produce forecasts each week we follow the following workflow:
 
 1. Modify the `forecast_date` in `targets/create_config_targets.R`. If using for a real-time submission, set `real_time <- TRUE`, `filepath_forecasts <- cityforecasts`.
-2. Run `targets::tar_make()`. This should take about ~10 minutes to run on all 57 locations (some of which are estimated jointly). It should populate `output/{filepath_forecasts}/{forecast_date}`.
+2. Run `targets::tar_make()`. This should take about ~10 minutes to run on all 70 locations (some of which are estimated jointly). It should populate `output/{filepath_forecasts}/{forecast_date}`.
 3. Open a PR into the [flu-metrocast hub GitHub](https://github.com/reichlab/flu-metrocast) GitHub under our team name `epiforecasts`.
 
 
@@ -34,7 +34,7 @@ Eventually, steps 1-2 will be automated with the Github Action `.git/workflows/g
 
 The below describes the preliminary model used:
 ### Observation model
-For the forecasts of counts due to ED visits, we assume a Poisson observation process
+For the forecasts of flu hospital admissions (counts), we assume a Poisson observation process
 
 $$
 y_{l,t} \sim Poisson(exp(x_{l,t}))
@@ -64,11 +64,7 @@ x_{l,t} \sim Normal(\mu_{l,t} + \delta_{l} x_{l,t-1},  \sigma_l)\\
 \end{align}
 ```
 
-For the NYC data, we have count data on a daily scale so we add in a weekday component
-```math
-\mu_{l,t} =  \beta_l + f_{global,t}(week) + f_{l,t}(week) + f_{global,t}(wday)
-```
-And since $\beta_{global}$ represents the intecept on the count scale, we place a prior on it using the mean observed count across the historical data:
+For the forecasts of flu hospital admissions (counts),  $\beta_{global}$ represents the intercept on the count scale, so we place a prior on it using the mean observed count across the historical data:
 
 $$
 \beta_{global} \sim Normal(log(\frac{\sum_{l=1}^L \sum_{t=1}^T y_{l,t}}{N_{obs}}), 1) \\
@@ -76,16 +72,8 @@ $$
 
 where $N_obs$ is the number of observations of $y_{l,t}$.
 
-For the TX data, $\beta_{global}$ represents the intercept as a proportion, so we use:
+For the forecasts of percent of ED visits due to flue, $\beta_{global}$ represents the intercept as a proportion, so we use:
 
 $$
 \beta_{global} \sim Normal(logit(\frac{\sum_{l=1}^L \sum_{t=1}^T y_{l,t}}{N_{obs}}), 1) \\
 $$
-
-
-
-For the NYC data, we have daily data so $t$ is measured in days, whereas for the Texas data, $t$ is measured in weeks.
-
-## Additional models
-The above model estimates a hierarchical dynamic GAM, which contains both a GAM component and an autoregressive component.
-We can additionally fit a more traditional hierarchical GAM (with no autoregression but with tensor product splines to jointly estimate across location and time) as well as a vector ARIMA without a spline component. Eventually, we can also mash everything together and estimate a hierarchical GAM with a multivariante vector autoregression. These will be areas of future work.
