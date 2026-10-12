@@ -104,6 +104,32 @@ Rscript -e "rmarkdown::render('weekly_forecasts.Rmd',
 # them relative so they display on GitHub
 sed -i '' "s|${REPO_DIR}/${output_dir}/||g" "${output_dir}/review.md"
 
+# Commit the outputs and review report to a forecast/<date> branch off
+# origin/main and push it for review. Uses a temporary worktree so the
+# checked-out branch is untouched. Outputs are gitignored, hence add -f;
+# hooks are skipped since this commit only contains generated files.
+branch="forecast/${FORECAST_DATE}"
+worktree="$(mktemp -d)/cityforecasts"
+cleanup_worktree() {
+  git worktree remove --force "$worktree" 2>/dev/null
+  git worktree prune
+}
+git fetch origin main || fail "git fetch failed"
+git worktree add -B "$branch" "$worktree" origin/main \
+  || fail "could not create worktree for $branch"
+mkdir -p "${worktree}/${output_dir}"
+cp -R "${output_dir}/config.yaml" "$output_file" "${output_dir}/review.md" \
+  "${output_dir}/review_files" "${worktree}/${output_dir}/"
+git -C "$worktree" add -f "$output_dir"
+git -C "$worktree" commit --no-verify -q \
+  -m "Forecasts for ${FORECAST_DATE} (hub ref ${HUB_REF})" \
+  || { cleanup_worktree; fail "git commit failed"; }
+git -C "$worktree" push --force -u origin "$branch" \
+  || { cleanup_worktree; fail "git push failed"; }
+cleanup_worktree
+review_url="https://github.com/epiforecasts/cityforecasts/blob/${branch}/${output_dir}/review.md"
+echo "$(date): pushed to $branch, review at $review_url"
+
 if [[ -n "$errored" ]]; then
   echo "$(date): finished with errored targets: $errored"
   notify "ready with errors" \
