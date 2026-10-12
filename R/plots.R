@@ -42,6 +42,10 @@ get_plot_forecasts <- function(dfall,
     target_end_date >= ymd(forecast_date) - days(calibration_days_to_show)
   )
 
+  median_df <- df_recent |>
+    group_by(target_end_date, location, period) |>
+    summarise(median_pred = median(100 * value))
+
   plot_draws <- ggplot(df_recent |> filter(
     draw %in% c(sampled_draws)
   )) +
@@ -51,13 +55,22 @@ get_plot_forecasts <- function(dfall,
         group = draw,
         color = period
       ),
-      alpha = 0.2,
+      alpha = 0.1,
       show.legend = FALSE
     ) +
+    geom_line(data = median_df, aes(
+      x = target_end_date,
+      y = median_pred,
+      color = period
+    )) +
     geom_line(aes(
       x = target_end_date,
       y = 100 * observation
     )) +
+    geom_point(aes(
+      x = target_end_date,
+      y = 100 * observation
+    ), size = 0.5) +
     facet_wrap(~location, scales = "free_y") +
     theme_bw() +
     xlab("") +
