@@ -9,12 +9,18 @@ post_processing_targets <- list(
   ),
   tar_target(
     name = df_for_submission,
-    command = df_draws |>
-      filter(target_end_date >= max_data_date) |>
-      select(
-        reference_date, location, target, target_end_date,
-        output_type, output_type_id, value
-      )
+    # Only submit the hub's forecast horizons (relative to the reference
+    # date), e.g. not horizon -1, or -2 for delayed locations. Computed
+    # outside filter() since df_draws also has a reference_date column.
+    command = {
+      submission_dates <- ymd(reference_date) + weeks(forecast_horizons)
+      df_draws |>
+        filter(target_end_date %in% submission_dates) |>
+        select(
+          reference_date, location, target, target_end_date,
+          output_type, output_type_id, value
+        )
+    }
   ),
   tar_target(
     name = save_submission,
