@@ -132,16 +132,14 @@ create_config_targets <- list( # nolint
     command = fs::dir_create(file.path(
       filepath_forecasts,
       forecast_date
-    ))
+    )),
+    # Always rerun so the directory is recreated if it was removed
+    cue = tar_cue(mode = "always")
   ),
   tar_target(
     name = save_config,
     command = yaml::write_yaml(config,
-      file = file.path(
-        filepath_forecasts,
-        forecast_date,
-        "config.yaml"
-      )
+      file = file.path(create_path, "config.yaml")
     )
   )
 )
