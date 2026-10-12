@@ -61,17 +61,12 @@ save_draws <- function(df_for_submission,
                        forecast_date,
                        reference_date,
                        filepath_forecasts) {
-  dir_create(
+  dir_create(file.path(filepath_forecasts, forecast_date))
+  fp <- file.path(
     filepath_forecasts,
-    forecast_date
+    forecast_date,
+    glue::glue("{reference_date}-epiforecasts-dyngam.parquet")
   )
-  arrow::write_parquet(
-    df_for_submission,
-    file.path(
-      filepath_forecasts,
-      forecast_date,
-      glue::glue("{reference_date}-epiforecasts-dyngam.parquet")
-    )
-  )
-  return(NULL)
+  arrow::write_parquet(df_for_submission, fp)
+  as.character(fp)
 }

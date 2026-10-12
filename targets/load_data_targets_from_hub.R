@@ -7,15 +7,18 @@ load_data_targets_from_hub <- list(
       left_join(location_data, by = "location") |>
       group_by(location) |>
       filter(max(target_end_date) >= ymd(forecast_date) - days(4)) |>
-      ungroup()
+      ungroup(),
+    # Always re-download so same-day reruns pick up hub data updates;
+    # downstream targets only rebuild if the data changed
+    cue = tar_cue(mode = "always")
   ),
   tar_target(
     name = latest_data,
     command = if (exclude_covid) {
+      covid_start <- ymd(covid_exclusion_period[1])
+      covid_end <- ymd(covid_exclusion_period[2])
       all_data |> filter(
-        !(target_end_date > ymd(covid_exclusion_period[1]) &
-          target_end_date <
-            ymd(covid_exclusion_period[2]))
+        !(target_end_date > covid_start & target_end_date < covid_end)
       )
     } else {
       all_data
