@@ -23,6 +23,7 @@ post_processing_targets <- list(
       forecast_date,
       reference_date,
       filepath_forecasts
-    )
+    ),
+    format = "file"
   )
 )
