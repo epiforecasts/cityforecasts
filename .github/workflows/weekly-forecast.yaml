@@ -5,6 +5,9 @@ on:
     # 19:30 UTC on Wednesdays = 3:30 PM EDT / 2:30 PM EST. The run polls until
     # the hub data is updated for the forecast date (up to MAX_WAIT).
     - cron: "30 19 * * 3"
+  # TEMPORARY: test run on push to this branch; remove before merging
+  push:
+    branches: [automatic-run]
   workflow_dispatch:
     inputs:
       forecast_date:
@@ -32,9 +35,9 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 360
     env:
-      FORECAST_DATE: ${{ inputs.forecast_date }}
+      FORECAST_DATE: ${{ github.event_name == 'push' && '2026-10-07' || inputs.forecast_date }}
       HUB_REF: ${{ inputs.hub_ref || 'main' }}
-      FORCE: ${{ inputs.force && '1' || '0' }}
+      FORCE: ${{ (github.event_name == 'push' || inputs.force) && '1' || '0' }}
       MAX_WAIT: 14400
       # Skip renv activation from .Rprofile; packages are installed below
       RENV_ACTIVATE_PROJECT: "FALSE"
