@@ -1,12 +1,17 @@
 load_data_targets_from_hub <- list(
   # Targets to run if using the latest_data directly (the simplest)
-  # Excludes and locations that are out of date by a week
+  # Excludes any locations that have not been updated for the forecast date
+  # (latest data is the Saturday before the Wednesday forecast date), except
+  # NYC, whose data is routinely a week behind, so is allowed one extra week
   tar_target(
     name = all_data,
     command = read_csv(latest_data_url) |>
       left_join(location_data, by = "location") |>
       group_by(location) |>
-      filter(max(target_end_date) >= ymd(forecast_date) - days(4)) |>
+      filter(
+        max(target_end_date) >=
+          ymd(forecast_date) - days(if_else(location == "nyc", 11, 4))
+      ) |>
       ungroup(),
     # Always re-download so same-day reruns pick up hub data updates;
     # downstream targets only rebuild if the data changed
