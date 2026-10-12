@@ -39,9 +39,23 @@ create_config_targets <- list( # nolint
     name = forecast_horizons,
     command = 0:3
   ),
+  # Git ref (branch or commit SHA) of the flu-metrocast hub to pull data from.
+  # Set via the HUB_REF env var, e.g. to a past commit SHA to reproduce the
+  # data available on a past forecast date. Defaults to main.
+  tar_target(
+    name = hub_ref,
+    command = Sys.getenv("HUB_REF", unset = "main"),
+    cue = tar_cue(mode = "always")
+  ),
+  tar_target(
+    name = hub_raw_url,
+    command = glue::glue(
+      "https://raw.githubusercontent.com/reichlab/flu-metrocast/{hub_ref}"
+    )
+  ),
   tar_target(
     name = locations_csv_path,
-    command = "https://raw.githubusercontent.com/reichlab/flu-metrocast/refs/heads/main/auxiliary-data/locations.csv" # nolint
+    command = file.path(hub_raw_url, "auxiliary-data", "locations.csv")
   ),
   # This is the table of all the locations we need to forecast
   tar_target(
@@ -56,7 +70,7 @@ create_config_targets <- list( # nolint
   ),
   tar_target(
     name = latest_data_url,
-    command = "https://raw.githubusercontent.com/reichlab/flu-metrocast/refs/heads/main/target-data/latest-data.csv" # nolint
+    command = file.path(hub_raw_url, "target-data", "latest-data.csv")
   ),
   tar_target(
     name = nssp_raw_data_url,
@@ -64,7 +78,7 @@ create_config_targets <- list( # nolint
   ),
   tar_target(
     name = nyc_data_url,
-    command = "https://raw.githubusercontent.com/reichlab/flu-metrocast/refs/heads/main/target-data/time-series.csv" # nolint
+    command = file.path(hub_raw_url, "target-data", "time-series.csv")
   ),
   tar_target(
     name = loc_data_w_state_code,
@@ -103,6 +117,7 @@ create_config_targets <- list( # nolint
     command = list(
       forecast_date = forecast_date,
       reference_date = reference_date,
+      hub_ref = hub_ref,
       team_name = "epiforecasts",
       model_name = "dyngam",
       exclude_covid = exclude_covid,
