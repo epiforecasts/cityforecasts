@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Run the weekly forecast pipeline, render a report for review and push the
-# outputs to a forecast/<date> branch.
+# Run the weekly forecast pipeline, push the outputs to a forecast/<date>
+# branch and publish a report for review to GitHub Pages.
 #
 # Run on a schedule by .github/workflows/weekly-forecast.yaml, but can also be
 # run locally (macOS or Linux), e.g. to reproduce a past forecast date:
@@ -14,6 +14,8 @@
 #   MAX_WAIT       max seconds to wait for updated hub data (default: 10800)
 #   FORCE          set to 1 to run even if this week's forecast already exists
 #   PUSH           set to 0 to skip pushing outputs to GitHub (default: 1)
+#   PAGES_URL      GitHub Pages URL the report is published under
+#                  (default: https://epiforecasts.io/cityforecasts)
 
 set -uo pipefail
 
@@ -51,7 +53,8 @@ output_dir="output/cityforecasts/${FORECAST_DATE}"
 reference_date=$(date_add "$FORECAST_DATE" +3)
 output_file="${output_dir}/${reference_date}-epiforecasts-dyngam.parquet"
 branch="forecast/${FORECAST_DATE}"
-review_url="https://github.com/epiforecasts/cityforecasts/blob/${branch}/${output_dir}/review.md"
+pages_url="${PAGES_URL:-https://epiforecasts.io/cityforecasts}"
+report_url="${pages_url}/${FORECAST_DATE}/"
 
 # Write a message to the GitHub Actions job summary, if running there
 summarise() {
@@ -81,7 +84,7 @@ if [[ "$FORCE" != "1" ]]; then
   if git fetch -q origin "$branch" 2>/dev/null \
     && git cat-file -e "FETCH_HEAD:$output_file" 2>/dev/null; then
     echo "$(date): $output_file already exists on $branch, skipping (set FORCE=1 to rerun)"
-    summarise "Skipped: \`$output_file\` already exists on \`$branch\` ([review report]($review_url))"
+    summarise "Skipped: \`$output_file\` already exists on \`$branch\` ([review report]($report_url))"
     exit 0
   fi
 fi
@@ -115,33 +118,30 @@ Rscript -e 'targets::tar_make()' \
 errored=$(Rscript -e 'cat(targets::tar_errored(), sep = " ")')
 [[ -f "$output_file" ]] || fail "no forecast file at $output_file"
 
-# Render plots of the forecasts for review as markdown + PNGs, which GitHub
-# renders natively (including on mobile)
+# Render plots of the forecasts for review as a single self-contained HTML
+# file (standard resolution figures keep it to ~5 MB)
+report="${output_dir}/report.html"
 Rscript -e "rmarkdown::render('weekly_forecasts.Rmd',
-  output_format = rmarkdown::github_document(html_preview = FALSE),
-  output_file = 'review.md', output_dir = '${output_dir}')" \
+  output_format = rmarkdown::html_document(fig_retina = 1),
+  output_file = 'report.html', output_dir = '${output_dir}')" \
   || fail "rendering weekly_forecasts.Rmd errored"
-# rmarkdown writes absolute figure paths when output_dir is elsewhere; make
-# them relative so they display on GitHub
-sed -i.bak "s|${REPO_DIR}/${output_dir}/||g" "${output_dir}/review.md" \
-  && rm "${output_dir}/review.md.bak"
 
 if [[ "$PUSH" == "1" ]]; then
-  # Commit the outputs and review report to a forecast/<date> branch off
-  # origin/main and push it for review. Uses a temporary worktree so the
-  # checked-out branch is untouched. Outputs are gitignored, hence add -f;
-  # hooks are skipped since this commit only contains generated files.
+  git fetch origin main || fail "git fetch failed"
+
+  # Commit the config and forecasts to a forecast/<date> branch off
+  # origin/main and push it. Uses a temporary worktree so the checked-out
+  # branch is untouched. Outputs are gitignored, hence add -f; hooks are
+  # skipped since this commit only contains generated files.
   worktree="$(mktemp -d)/cityforecasts"
   cleanup_worktree() {
     git worktree remove --force "$worktree" 2>/dev/null
     git worktree prune
   }
-  git fetch origin main || fail "git fetch failed"
   git worktree add -B "$branch" "$worktree" origin/main \
     || fail "could not create worktree for $branch"
   mkdir -p "${worktree}/${output_dir}"
-  cp -R "${output_dir}/config.yaml" "$output_file" "${output_dir}/review.md" \
-    "${output_dir}/review_files" "${worktree}/${output_dir}/"
+  cp "${output_dir}/config.yaml" "$output_file" "${worktree}/${output_dir}/"
   git -C "$worktree" add -f "$output_dir"
   git -C "$worktree" commit --no-verify -q \
     -m "Forecasts for ${FORECAST_DATE} (hub ref ${HUB_REF})" \
@@ -149,8 +149,46 @@ if [[ "$PUSH" == "1" ]]; then
   git -C "$worktree" push --force -u origin "$branch" \
     || { cleanup_worktree; fail "git push failed"; }
   cleanup_worktree
-  echo "$(date): pushed to $branch, review at $review_url"
-  summarise "Forecasts for $FORECAST_DATE pushed to \`$branch\`: [review report]($review_url)"
+  echo "$(date): pushed forecasts to $branch"
+
+  # Publish the report to GitHub Pages (gh-pages branch) at
+  # <date>/index.html, with an index page linking to all reports. The branch
+  # is pushed as a single commit each time so old report versions don't
+  # accumulate in the repo history.
+  worktree="$(mktemp -d)/gh-pages"
+  if git fetch -q origin gh-pages 2>/dev/null; then
+    git worktree add --detach "$worktree" FETCH_HEAD \
+      || fail "could not create worktree for gh-pages"
+  else
+    git worktree add --detach "$worktree" origin/main \
+      || fail "could not create worktree for gh-pages"
+    git -C "$worktree" rm -rqf .
+  fi
+  mkdir -p "${worktree}/${FORECAST_DATE}"
+  cp "$report" "${worktree}/${FORECAST_DATE}/index.html"
+  touch "${worktree}/.nojekyll"
+  {
+    echo '<!DOCTYPE html><html><head><meta charset="utf-8">'
+    echo '<meta name="viewport" content="width=device-width, initial-scale=1">'
+    echo '<title>cityforecasts reports</title>'
+    echo '<style>body{font-family:system-ui,sans-serif;max-width:40em;margin:2em auto;padding:0 1em;line-height:1.6}</style>'
+    echo '</head><body><h1>cityforecasts weekly reports</h1><ul>'
+    for d in $(cd "$worktree" && ls -d 20??-??-?? | sort -r); do
+      echo "<li><a href=\"${d}/\">${d}</a></li>"
+    done
+    echo '</ul></body></html>'
+  } >"${worktree}/index.html"
+  git -C "$worktree" add -A
+  pages_commit=$(git -C "$worktree" commit-tree "$(git -C "$worktree" write-tree)" \
+    -m "Reports as of ${FORECAST_DATE}") \
+    || { cleanup_worktree; fail "could not create gh-pages commit"; }
+  git -C "$worktree" push --force origin "${pages_commit}:refs/heads/gh-pages" \
+    || { cleanup_worktree; fail "git push to gh-pages failed"; }
+  cleanup_worktree
+  echo "$(date): published report at $report_url"
+  summarise "Forecasts for $FORECAST_DATE: [review report]($report_url), forecasts on branch \`$branch\`"
+else
+  echo "$(date): report at ${REPO_DIR}/${report}"
 fi
 
 if [[ -n "$errored" ]]; then
