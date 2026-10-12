@@ -92,7 +92,7 @@ Rscript -e 'targets::tar_make()' \
 # error = "null" lets individual targets fail without stopping the pipeline,
 # so report any errored targets
 errored=$(Rscript -e 'cat(targets::tar_errored(), sep = " ")')
-[ -f "$output_file" ]] || fail "no forecast file at $output_file"
+[[ -f "$output_file" ]] || fail "no forecast file at $output_file"
 
 # Render plots of the forecasts for review as markdown + PNGs, which GitHub
 # renders natively (including on mobile)
