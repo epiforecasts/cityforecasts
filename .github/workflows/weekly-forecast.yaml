@@ -1,0 +1,109 @@
+name: Weekly forecast
+
+on:
+  schedule:
+    # 19:30 UTC on Wednesdays = 3:30 PM EDT / 2:30 PM EST. The run polls until
+    # the hub data is updated for the forecast date (up to MAX_WAIT).
+    - cron: "30 19 * * 3"
+  workflow_dispatch:
+    inputs:
+      forecast_date:
+        description: "Wednesday forecast date (YYYY-MM-DD); defaults to the most recent Wednesday"
+        required: false
+        default: ""
+      hub_ref:
+        description: "flu-metrocast git ref (branch or commit SHA) to pull data from"
+        required: false
+        default: "main"
+      force:
+        description: "Rerun even if this week's forecast already exists"
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: weekly-forecast
+  cancel-in-progress: false
+
+jobs:
+  forecast:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    env:
+      FORECAST_DATE: ${{ inputs.forecast_date }}
+      HUB_REF: ${{ inputs.hub_ref || 'main' }}
+      FORCE: ${{ inputs.force && '1' || '0' }}
+      MAX_WAIT: 14400
+      # Skip renv activation from .Rprofile; packages are installed below
+      RENV_ACTIVATE_PROJECT: "FALSE"
+      GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
+      CMDSTAN_VERSION: "2.36.0"
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - uses: r-lib/actions/setup-pandoc@v2
+
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          use-public-rspm: true
+
+      - uses: r-lib/actions/setup-r-dependencies@v2
+        with:
+          extra-repositories: https://stan-dev.r-universe.dev
+          packages: |
+            any::arrow
+            any::cmdstanr
+            any::dplyr
+            any::epidatr
+            any::fs
+            any::ggplot2
+            any::glue
+            any::gratia
+            any::here
+            any::knitr
+            any::lubridate
+            any::mvgam
+            any::purrr
+            any::RcppTOML
+            any::readr
+            any::rlang
+            any::rmarkdown
+            any::stringr
+            any::tarchetypes
+            any::targets
+            any::tidycensus
+            any::tidyr
+            any::yaml
+
+      - name: Cache CmdStan
+        uses: actions/cache@v4
+        with:
+          path: ~/.cmdstan
+          key: cmdstan-${{ env.CMDSTAN_VERSION }}-${{ runner.os }}
+
+      - name: Install CmdStan
+        run: |
+          Rscript -e 'if (!dir.exists(file.path("~/.cmdstan", paste0("cmdstan-", Sys.getenv("CMDSTAN_VERSION"))))) cmdstanr::install_cmdstan(version = Sys.getenv("CMDSTAN_VERSION"), cores = parallel::detectCores())'
+
+      # The targets store is not kept between runs, so start from scratch
+      # (_targets/meta/meta is tracked in git but its objects are not)
+      - name: Clear targets store
+        run: rm -rf _targets
+
+      - name: Generate forecasts
+        run: bin/run_weekly_forecast.sh
+
+      - name: Upload outputs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: forecast-outputs
+          path: output/cityforecasts/
+          if-no-files-found: ignore
