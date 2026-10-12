@@ -84,12 +84,6 @@ create_config_targets <- list( # nolint
     command = loc_data_w_state_code |>
       filter(location_type == "fips")
   ),
-  # Aggregate locations that are not states---------------------------------
-  tar_target(
-    name = location_data_agg,
-    command = loc_data_w_state_code |>
-      filter(location == "nyc")
-  ),
   tar_target(
     name = locations_forecasted,
     command = location_data$location
