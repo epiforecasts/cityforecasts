@@ -38,57 +38,64 @@ fit_ar_mod <- function(model_data,
 
 
   if (str_detect(target, "pct")) {
+    # Lognormal can't take zeros. Data are rounded to 0.0001, so a zero means
+    # < 0.00005: replace with half the reporting resolution
     model_data_fit <- model_data_fit |>
-      mutate(observation = ifelse(observation == 0, 1e-10, observation))
+      mutate(observation = ifelse(observation == 0, 0.00005, observation))
 
-    # Multiple locations
-    ar_mod <- mvgam(
-      # Observation formula, empty to only consider the Gamma observation process
-      formula = observation ~ -1,
-
-      # Process model formula that includes regional intercepts
-      trend_formula = trend_formula,
-      knots = list(week = c(1, 52)),
-      trend_model = "AR1",
-      # Adjust the priors
-      priors = c(
-        prior(normal(-4.5, 1),
-          class = mu_raw_trend
-        ),
-        prior(exponential(0.33), class = sigma_raw_trend),
-        prior(exponential(1), class = sigma),
-        prior(normal(0.5, 0.25), class = ar1, lb = 0, ub = 1)
-      ),
-      data = model_data_fit,
-      newdata = forecast_data_fit,
-      backend = "cmdstanr",
-      family = betar()
-    )
+    # Centre the level prior on the typical log proportion (mean
+    # log(observation) across pct locations is ~ -5.5)
+    level_prior <- "normal(-5.5, 1)"
+    obs_family <- lognormal()
   } else {
     # Target is not a proportion but a count -- need a Poisson observation model
-    ar_mod <- mvgam(
-      # Observation formula, empty to only consider the Gamma observation process
-      formula = observation ~ -1,
 
-      # Process model formula that includes regional intercepts
-      trend_formula = trend_formula,
-      knots = list(week = c(1, 52)),
-      trend_model = "AR1",
-      # Adjust the priors
-      priors = c(
-        prior(normal(-4.5, 1),
-          class = mu_raw_trend
-        ),
-        prior(exponential(0.33), class = sigma_raw_trend),
-        prior(exponential(1), class = sigma),
-        prior(normal(0.5, 0.25), class = ar1, lb = 0, ub = 1)
-      ),
-      data = model_data_fit,
-      newdata = forecast_data_fit,
-      backend = "cmdstanr",
-      family = poisson()
-    )
+    # Centre the level prior on log(typical count): the log of each location's
+    # median count (floored at 1 to avoid log(0)), averaged across locations.
+    # SD of 2 on the log scale (~x7 either way) as counts are not stable
+    log_typical_count <- model_data_fit |>
+      group_by(location) |>
+      summarise(log_median = log(max(median(observation, na.rm = TRUE), 1))) |>
+      pull(log_median) |>
+      mean()
+    level_prior <- paste0("normal(", round(log_typical_count, 2), ", 2)")
+    obs_family <- poisson()
   }
+
+  # The level parameters depend on whether the model is hierarchical
+  if (length(unique(model_data_fit$series)) > 1) {
+    # Hierarchical random intercepts from s(trend, bs = "re")
+    level_priors <- c(
+      prior_string(level_prior, class = "mu_raw_trend"),
+      prior(exponential(0.33), class = sigma_raw_trend)
+    )
+  } else {
+    # Single location: level is set by the trend intercept
+    level_priors <- prior_string(level_prior, class = "Intercept_trend")
+  }
+
+  # For pct targets, a lognormal observation model: constant relative noise, so
+  # the latent trend can track changes at low proportions (beta treats them as
+  # noise)
+  ar_mod <- mvgam(
+    # Observation formula, empty to only consider the observation process
+    formula = observation ~ -1,
+
+    # Process model formula that includes regional intercepts
+    trend_formula = trend_formula,
+    knots = list(week = c(1, 52)),
+    trend_model = "AR1",
+    # Adjust the priors
+    priors = c(
+      level_priors,
+      prior(exponential(1), class = sigma),
+      prior(normal(0.5, 0.25), class = ar1, lb = 0, ub = 1)
+    ),
+    data = model_data_fit,
+    newdata = forecast_data_fit,
+    backend = "cmdstanr",
+    family = obs_family
+  )
 
   summary <- summary(ar_mod)
   fp_figs <- file.path(fp_base, "figures", forecast_date, model_run_location)
