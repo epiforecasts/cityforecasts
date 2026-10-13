@@ -14,7 +14,7 @@ Since the Hub now solicits both local level and aggregate (typically state-level
 
 A table of all the locations being solicited is available at the [flu-metrocast hub GitHub](https://github.com/reichlab/flu-metrocast).
 
-Since all forecast targets are percents, we will use the same latent and observaiton model for all locations (however, if we have count data this can easily be incorporated by using a Poisson observaiton model).
+Since all forecast targets are percents, we will use the same latent and observation model for all locations (however, if we have count data this can easily be incorporated by using a Poisson observation model).
 
 ## Workflow
 Because all data is available publicly, the forecasts generated should be completely reproducible for any given forecast date.
@@ -28,7 +28,7 @@ To produce forecasts each week we follow the following workflow:
 3. Open a PR into the [flu-metrocast hub GitHub](https://github.com/reichlab/flu-metrocast) GitHub under our team name `epiforecasts`.
 
 
-Steps 1-2 are automated with GitHub Actions, set on a schedule to run at 2:30 PM EST every Wednesday. They will generate forecasts on a public GitHub pages site: https://epiforecasts.io/cityforecasts/{forecast_date}. An example for a [test run](https://epiforecasts.io/cityforecasts/2026-10-07/) is from October 7th, 2026. 
+Steps 1-2 are automated with GitHub Actions, set on a schedule to run at 2:30 PM EST every Wednesday. They will generate forecasts on a public GitHub pages site: https://epiforecasts.io/cityforecasts/{forecast_date}. An example for a [test run](https://epiforecasts.io/cityforecasts/2026-10-07/) is from October 7th, 2026.
 
 ## Model definition
 
@@ -40,40 +40,42 @@ $$
 y_{l,t} \sim Poisson(exp(x_{l,t}))
 $$
 
-For the forecasts of the percent of ED visits due to flu, we assume a Beta observation process on the proportion of ED visits due to flu:
+For the forecasts of the percent of ED visits due to flu, we assume a lognormal observation process on the proportion of ED visits due to flu:
 
 ```math
 \begin{align}
 p_{l,t} = y_{l,t} \times 100 \\
-y_{l,t} \sim Beta (z_{l,t}, \phi) \\
-logit(z_{l,t}) = x_{l,t}
+log(y_{l,t}) \sim Normal(x_{l,t}, \sigma_{obs,l})
 \end{align}
 ```
 
-### Latent state-space model: Dynamic hierachical GAM with independent autoregression
-We model latent admissions with a hierarchical GAM component to capture shared seasonality and weekday effects and a univariate autoregressive component to capture trends in the dynamics within each location.
+The lognormal assumes constant relative (multiplicative) observation noise, so that changes at low proportions (e.g. early-season upticks) are attributed to the latent state rather than treated as noise, as a Beta observation model with constant precision does.
+Because the reported proportions are rounded to 0.0001, observed zeros (true value < 0.00005) are replaced with 0.00005 before fitting.
+
+### Latent state-space model: Dynamic hierarchical GAM with independent autoregression
+We model the latent state with a hierarchical GAM component to capture shared seasonality and a univariate autoregressive component to capture deviations from the seasonal pattern within each location.
 
 ```math
 \begin{align}
-x_{l,t} \sim Normal(\mu_{l,t} + \delta_{l} x_{l,t-1},  \sigma_l)\\
+x_{l,t} \sim Normal(\mu_{l,t} + \delta_{l} (x_{l,t-1} - \mu_{l,t-1}),  \sigma_l)\\
 \mu_{l,t} = \beta_l + f_{global,t}(weekofyear) + f_{l,t}(weekofyear) \\
 \beta_l \sim Normal(\beta_{global}, \sigma_{count}) \\
 \sigma_{count} \sim exp(0.33) \\
 \delta_l \sim Normal(0.5, 0.25) T[0,1] \\
-\sigma \sim exp(1) \\
+\sigma_l \sim exp(1) \\
 \end{align}
 ```
 
-For the forecasts of flu hospital admissions (counts),  $\beta_{global}$ represents the intercept on the count scale, so we place a prior on it using the mean observed count across the historical data:
+When a location is fit on its own (e.g. aggregate/state locations), there is no hierarchy: $\mu_{t} = \beta + f(weekofyear)$ and the prior below is placed directly on $\beta$.
+
+For the forecasts of flu hospital admissions (counts), $\beta_{global}$ represents the intercept on the log count scale, so we centre its prior on the log of the typical count, averaging the log of each location's median count:
 
 $$
-\beta_{global} \sim Normal(log(\frac{\sum_{l=1}^L \sum_{t=1}^T y_{l,t}}{N_{obs}}), 1) \\
+\beta_{global} \sim Normal(\frac{1}{L}\sum_{l=1}^L log(max(median_t(y_{l,t}), 1)), 2)
 $$
 
-where $N_obs$ is the number of observations of $y_{l,t}$.
-
-For the forecasts of percent of ED visits due to flue, $\beta_{global}$ represents the intercept as a proportion, so we use:
+For the forecasts of percent of ED visits due to flu, $\beta_{global}$ represents the intercept on the log proportion scale, so we centre its prior on the typical log proportion across all locations:
 
 $$
-\beta_{global} \sim Normal(logit(\frac{\sum_{l=1}^L \sum_{t=1}^T y_{l,t}}{N_{obs}}), 1) \\
+\beta_{global} \sim Normal(-5.5, 1)
 $$
