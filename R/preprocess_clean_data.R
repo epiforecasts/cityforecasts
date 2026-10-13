@@ -1,5 +1,6 @@
 preprocess_clean_data <- function(data) {
-  model_run_location <- unique(data$model_run_location)[!is.na(unique(data$model_run_location))]
+  model_run_locations <- unique(data$model_run_location)
+  model_run_location <- model_run_locations[!is.na(model_run_locations)]
   model_data <- data |>
     group_by(location) |>
     tidyr::complete(target_end_date = seq(min(target_end_date),
@@ -13,7 +14,9 @@ preprocess_clean_data <- function(data) {
     ) |>
     mutate(
       year = year - min(year) + 1,
-      time = floor(as.integer(target_end_date - min(target_end_date) + 1) / 7) + 1,
+      time = floor(
+        as.integer(target_end_date - min(target_end_date) + 1) / 7
+      ) + 1,
       season = ifelse(week <= 31, year, year + 1)
     ) |>
     select(
@@ -27,13 +30,16 @@ preprocess_clean_data <- function(data) {
     model_data <- model_data |>
       mutate(observation = observation / 100)
   }
-  return(model_data)
+  model_data
 }
 
 get_forecast_data <- function(model_data,
                               forecast_date,
                               forecast_horizon) {
   next_saturday <- ymd(forecast_date) + (7 - wday(forecast_date))
+  # Forecast from the week after the last observation rather than from
+  # next_saturday so there is no gap for delayed data (e.g. NYC)
+  last_obs_date <- max(model_data$target_end_date)
 
   model_run_location <- unique(model_data$model_run_location)
   target <- unique(model_data$target)[1]
@@ -42,7 +48,7 @@ get_forecast_data <- function(model_data,
     group_by(location) |>
     tidyr::complete(
       target_end_date = seq(
-        from = next_saturday,
+        from = last_obs_date + days(7),
         to = next_saturday + days(7 * forecast_horizon),
         by = "weeks"
       )
@@ -54,7 +60,9 @@ get_forecast_data <- function(model_data,
     ) |>
     mutate(
       year = year - min(year) + 1,
-      time = floor(as.integer(target_end_date - min(target_end_date) + 1) / 7) + 1,
+      time = floor(
+        as.integer(target_end_date - min(target_end_date) + 1) / 7
+      ) + 1,
       season = ifelse(week <= 31, year, year + 1)
     ) |>
     filter(target_end_date > max(model_data$target_end_date)) |>
@@ -68,5 +76,5 @@ get_forecast_data <- function(model_data,
     )
 
 
-  return(forecast_data)
+  forecast_data
 }
