@@ -17,6 +17,8 @@
 #   PUSH           set to 0 to skip pushing outputs to GitHub (default: 1)
 #   OPEN_PR        set to 0 to skip opening a PR into main (default: 1);
 #                  requires the gh CLI to be installed and authenticated
+#   PR_REVIEWER    GitHub user to request a review of the PR from
+#                  (default: none)
 #   PAGES_URL      GitHub Pages URL the report is published under
 #                  (default: https://epiforecasts.io/cityforecasts)
 
@@ -215,11 +217,13 @@ if [[ "$PUSH" == "1" ]]; then
 ${run_line}
 ${errored_line}
 
-After reviewing, submit \`${output_file}\` to the flu-metrocast hub and merge this PR to archive the forecast on main."
+Merging this PR archives the forecast on main and opens a PR submitting it to the flu-metrocast hub."
     existing_pr=$(gh pr list --head "$branch" --base main --state open \
       --json number --jq '.[0].number' 2>/dev/null)
     if [[ -n "$existing_pr" ]]; then
-      if gh pr edit "$existing_pr" --body "$pr_body" >/dev/null; then
+      # gh api rather than gh pr edit, which errors on some gh versions
+      if gh api -X PATCH "repos/{owner}/{repo}/pulls/${existing_pr}" \
+        -f body="$pr_body" >/dev/null; then
         echo "$(date): updated PR #$existing_pr"
         summarise "Updated PR #$existing_pr"
       else
@@ -229,6 +233,11 @@ After reviewing, submit \`${output_file}\` to the flu-metrocast hub and merge th
       --title "Forecasts for ${FORECAST_DATE}" --body "$pr_body"); then
       echo "$(date): opened PR $pr_url"
       summarise "Opened PR: $pr_url"
+      if [[ -n "${PR_REVIEWER:-}" ]] \
+        && ! gh api -X POST "repos/{owner}/{repo}/pulls/${pr_url##*/}/requested_reviewers" \
+          -f "reviewers[]=$PR_REVIEWER" >/dev/null; then
+        echo "::warning::could not request a review from $PR_REVIEWER"
+      fi
     else
       # Don't fail the run: the forecasts and report are already pushed
       echo "$(date): could not open PR for $branch"
