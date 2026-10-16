@@ -221,7 +221,9 @@ Merging this PR archives the forecast on main and opens a PR submitting it to th
     existing_pr=$(gh pr list --head "$branch" --base main --state open \
       --json number --jq '.[0].number' 2>/dev/null)
     if [[ -n "$existing_pr" ]]; then
-      if gh pr edit "$existing_pr" --body "$pr_body" >/dev/null; then
+      # gh api rather than gh pr edit, which errors on some gh versions
+      if gh api -X PATCH "repos/{owner}/{repo}/pulls/${existing_pr}" \
+        -f body="$pr_body" >/dev/null; then
         echo "$(date): updated PR #$existing_pr"
         summarise "Updated PR #$existing_pr"
       else
@@ -232,7 +234,8 @@ Merging this PR archives the forecast on main and opens a PR submitting it to th
       echo "$(date): opened PR $pr_url"
       summarise "Opened PR: $pr_url"
       if [[ -n "${PR_REVIEWER:-}" ]] \
-        && ! gh pr edit "$pr_url" --add-reviewer "$PR_REVIEWER" >/dev/null; then
+        && ! gh api -X POST "repos/{owner}/{repo}/pulls/${pr_url##*/}/requested_reviewers" \
+          -f "reviewers[]=$PR_REVIEWER" >/dev/null; then
         echo "::warning::could not request a review from $PR_REVIEWER"
       fi
     else
