@@ -2,9 +2,9 @@ name: Weekly forecast
 
 on:
   schedule:
-    # 19:30 UTC on Wednesdays = 3:30 PM EDT / 2:30 PM EST. The run polls until
+    # 20:00 UTC on Wednesdays = 4:00 PM EDT / 3:00 PM EST. The run polls until
     # the hub data is updated for the forecast date (up to MAX_WAIT).
-    - cron: "30 19 * * 3"
+    - cron: "0 20 * * 3"
   workflow_dispatch:
     inputs:
       forecast_date:
@@ -22,6 +22,7 @@ on:
 
 permissions:
   contents: write
+  pull-requests: write
 
 concurrency:
   group: weekly-forecast
@@ -39,6 +40,11 @@ jobs:
       # Skip renv activation from .Rprofile; packages are installed below
       RENV_ACTIVATE_PROJECT: "FALSE"
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
+      # Used by gh to open the forecast PR into main. GITHUB_TOKEN works if
+      # "Allow GitHub Actions to create and approve pull requests" is enabled
+      # in the repo settings; otherwise set a FORECAST_PR_TOKEN secret (a PAT
+      # with pull request write access)
+      GH_TOKEN: ${{ secrets.FORECAST_PR_TOKEN || secrets.GITHUB_TOKEN }}
       CMDSTAN_VERSION: "2.36.0"
     steps:
       - uses: actions/checkout@v4

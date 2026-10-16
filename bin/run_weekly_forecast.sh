@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Run the weekly forecast pipeline, push the outputs to a forecast/<date>
-# branch and publish a report for review to GitHub Pages.
+# branch, publish a report for review to GitHub Pages and open a PR of the
+# forecast branch into main linking to the report.
 #
 # Run on a schedule by .github/workflows/weekly-forecast.yaml, but can also be
 # run locally (macOS or Linux), e.g. to reproduce a past forecast date:
@@ -14,6 +15,8 @@
 #   MAX_WAIT       max seconds to wait for updated hub data (default: 10800)
 #   FORCE          set to 1 to run even if this week's forecast already exists
 #   PUSH           set to 0 to skip pushing outputs to GitHub (default: 1)
+#   OPEN_PR        set to 0 to skip opening a PR into main (default: 1);
+#                  requires the gh CLI to be installed and authenticated
 #   PAGES_URL      GitHub Pages URL the report is published under
 #                  (default: https://epiforecasts.io/cityforecasts)
 
@@ -48,6 +51,7 @@ POLL_INTERVAL="${POLL_INTERVAL:-600}"
 MAX_WAIT="${MAX_WAIT:-10800}"
 FORCE="${FORCE:-0}"
 PUSH="${PUSH:-1}"
+OPEN_PR="${OPEN_PR:-1}"
 
 output_dir="output/cityforecasts/${FORECAST_DATE}"
 reference_date=$(date_add "$FORECAST_DATE" +3)
@@ -187,6 +191,51 @@ if [[ "$PUSH" == "1" ]]; then
   cleanup_worktree
   echo "$(date): published report at $report_url"
   summarise "Forecasts for $FORECAST_DATE: [review report]($report_url), forecasts on branch \`$branch\`"
+
+  # Open a PR of the forecast branch into main pointing to the report. The
+  # report stays at its dated URL on GitHub Pages, so past reports can be
+  # reviewed from the PRs or the index page. On a rerun (FORCE=1) the
+  # existing PR is updated instead.
+  if [[ "$OPEN_PR" == "1" ]]; then
+    if [[ -n "${GITHUB_SERVER_URL:-}" && -n "${GITHUB_RUN_ID:-}" ]]; then
+      run_line="- Workflow run: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+    else
+      run_line="- Run locally on $(hostname)"
+    fi
+    if [[ -n "$errored" ]]; then
+      errored_line="- **Errored targets:** \`${errored}\`"
+    else
+      errored_line="- Errored targets: none"
+    fi
+    pr_body="Forecasts for **${FORECAST_DATE}** (reference date ${reference_date}).
+
+**[Review report](${report_url})** (all past reports: ${pages_url}/)
+
+- Hub ref: \`${HUB_REF}\`
+${run_line}
+${errored_line}
+
+After reviewing, submit \`${output_file}\` to the flu-metrocast hub and merge this PR to archive the forecast on main."
+    existing_pr=$(gh pr list --head "$branch" --base main --state open \
+      --json number --jq '.[0].number' 2>/dev/null)
+    if [[ -n "$existing_pr" ]]; then
+      if gh pr edit "$existing_pr" --body "$pr_body" >/dev/null; then
+        echo "$(date): updated PR #$existing_pr"
+        summarise "Updated PR #$existing_pr"
+      else
+        echo "::warning::could not update PR #$existing_pr"
+      fi
+    elif pr_url=$(gh pr create --base main --head "$branch" \
+      --title "Forecasts for ${FORECAST_DATE}" --body "$pr_body"); then
+      echo "$(date): opened PR $pr_url"
+      summarise "Opened PR: $pr_url"
+    else
+      # Don't fail the run: the forecasts and report are already pushed
+      echo "$(date): could not open PR for $branch"
+      summarise "**Could not open PR** for \`$branch\`; open it manually"
+      [[ -n "${GITHUB_ACTIONS:-}" ]] && echo "::warning::Could not open PR for $branch"
+    fi
+  fi
 else
   echo "$(date): report at ${REPO_DIR}/${report}"
 fi
