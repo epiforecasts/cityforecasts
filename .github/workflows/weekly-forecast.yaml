@@ -45,6 +45,8 @@ jobs:
       # in the repo settings; otherwise set a FORECAST_PR_TOKEN secret (a PAT
       # with pull request write access)
       GH_TOKEN: ${{ secrets.FORECAST_PR_TOKEN || secrets.GITHUB_TOKEN }}
+      # Requested as a reviewer on the forecast PR
+      PR_REVIEWER: kaitejohnson
       CMDSTAN_VERSION: "2.36.0"
     steps:
       - uses: actions/checkout@v4

@@ -28,7 +28,9 @@ To produce forecasts each week we follow the following workflow:
 3. Open a PR into the [flu-metrocast hub GitHub](https://github.com/reichlab/flu-metrocast) GitHub under our team name `epiforecasts`.
 
 
-Steps 1-2 are automated with GitHub Actions, set on a schedule to run at 3:00 PM EST (4:00 PM EDT) every Wednesday. They push the forecasts to a `forecast/{forecast_date}` branch, publish a report for review on a public GitHub pages site at https://epiforecasts.io/cityforecasts/{forecast_date}, and open a PR into `main` linking to the report. 
+Steps 1-2 are automated with GitHub Actions, set on a schedule to run at 3:00 PM EST (4:00 PM EDT) every Wednesday. They push the forecasts to a `forecast/{forecast_date}` branch, publish a report for review on a public GitHub pages site at https://epiforecasts.io/cityforecasts/{forecast_date}, and open a PR into `main` linking to the report, with a review requested from @kaitejohnson.
+
+Step 3 is automated too, but only runs once a person has reviewed the forecasts. Merging a `Forecasts for {forecast_date}` PR into `main` triggers the `Submit to hub` workflow. It commits the forecast to a new branch off the hub's `main`, pushes it to the [kaitejohnson/flu-metrocast](https://github.com/kaitejohnson/flu-metrocast) fork and opens a PR into the hub. To submit (or resubmit) a forecast that is already on `main`, run the workflow manually from the Actions tab with its forecast date, or run `FORECAST_DATE={forecast_date} bin/submit_to_hub.sh` locally (`DRY_RUN=1` commits without pushing).
 
 ### Reviewing past forecasts
 
