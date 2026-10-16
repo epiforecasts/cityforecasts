@@ -28,7 +28,7 @@ To produce forecasts each week we follow the following workflow:
 3. Open a PR into the [flu-metrocast hub GitHub](https://github.com/reichlab/flu-metrocast) GitHub under our team name `epiforecasts`.
 
 
-Steps 1-2 are automated with GitHub Actions, set on a schedule to run at 3:00 PM EST (4:00 PM EDT) every Wednesday. They push the forecasts to a `forecast/{forecast_date}` branch, publish a report for review on a public GitHub pages site at https://epiforecasts.io/cityforecasts/{forecast_date}, and open a PR into `main` linking to the report. An example for a [test run](https://epiforecasts.io/cityforecasts/2026-10-07/) is from October 7th, 2026.
+Steps 1-2 are automated with GitHub Actions, set on a schedule to run at 3:00 PM EST (4:00 PM EDT) every Wednesday. They push the forecasts to a `forecast/{forecast_date}` branch, publish a report for review on a public GitHub pages site at https://epiforecasts.io/cityforecasts/{forecast_date}, and open a PR into `main` linking to the report. 
 
 ### Reviewing past forecasts
 
