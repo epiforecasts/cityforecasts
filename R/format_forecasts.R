@@ -17,7 +17,7 @@ format_forecasts <- function(df_weekly,
     draws = sample(1:max(df_weekly$draw), n_draws_to_submit,
       replace = FALSE
     ),
-    output_type_id = glue::glue("{character_id}{index_num}")
+    output_type_id = as.character(glue::glue("{character_id}{index_num}"))
   )
 
   df_weekly_posteriors <- df_weekly |>
@@ -49,7 +49,8 @@ format_forecasts <- function(df_weekly,
   if (str_detect(target, "pct")) {
     df_weekly_posteriors <- df_weekly_posteriors |>
       mutate(
-        value = 100 * value,
+        # Percentages can't exceed 100 (hub maximum), so cap the draws
+        value = pmin(100 * value, 100),
         observation = 100 * observation
       )
   }
