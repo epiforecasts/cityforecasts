@@ -5,9 +5,9 @@
 # single updated location is not enough. The data is treated as updated if
 # either enough locations are updated (allowing a few scattered locations to
 # be missing) or only a few states have any location behind (allowing a whole
-# state to be missing, e.g. Georgia). The pipeline forecasts locations that
-# are behind from their last observation. NYC is excluded since its data is
-# routinely a week behind.
+# state to be missing, e.g. Georgia). The pipeline excludes locations that
+# are behind, so they are not forecast that week. NYC is excluded since its
+# data is routinely a week behind.
 #
 # Uses the same env vars as the targets pipeline:
 #   FORECAST_DATE (YYYY-MM-DD, defaults to the most recent Wednesday in ET)
