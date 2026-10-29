@@ -1,0 +1,100 @@
+name: Publish report
+
+# Publishes a report of each forecast merged into main to GitHub Pages, built
+# from the forecast parquet (forecast_report.Rmd), so forecasts generated
+# outside the weekly forecast workflow (e.g. run locally) also get a report.
+# Reports already published (e.g. by the weekly forecast workflow, which also
+# shows the model fit) are kept unless force is set.
+on:
+  push:
+    branches: [main]
+    paths:
+      - "output/cityforecasts/*/*-epiforecasts-dyngam.parquet"
+  workflow_dispatch:
+    inputs:
+      forecast_date:
+        description: "Forecast date (YYYY-MM-DD) to publish a report for; the forecast must be on main"
+        required: true
+      hub_ref:
+        description: "flu-metrocast git ref (branch or commit SHA) to pull data from"
+        required: false
+        default: "main"
+      force:
+        description: "Replace the report if one is already published for this date"
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: publish-report
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    env:
+      HUB_REF: ${{ inputs.hub_ref || 'main' }}
+      FORCE: ${{ inputs.force && '1' || '0' }}
+      RENV_ACTIVATE_PROJECT: "FALSE"
+      GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Configure git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Find forecast dates to publish
+        id: dates
+        env:
+          INPUT_DATE: ${{ inputs.forecast_date }}
+          BEFORE: ${{ github.event.before }}
+        run: |
+          if [[ -n "$INPUT_DATE" ]]; then
+            dates="$INPUT_DATE"
+          else
+            # Forecasts added by this push, ignoring non-date directories
+            # (e.g. 2026-10-07_manual)
+            dates=$(git diff --name-only --diff-filter=A "$BEFORE" "$GITHUB_SHA" \
+              -- 'output/cityforecasts/*/*-epiforecasts-dyngam.parquet' \
+              | cut -d/ -f3 | grep -E '^[0-9]{4}-[0-9]{2}-[0-9]{2}$' | sort -u)
+          fi
+          echo "Forecast dates to publish: ${dates:-none}"
+          echo "dates=$(echo $dates)" >>"$GITHUB_OUTPUT"
+
+      - uses: r-lib/actions/setup-pandoc@v2
+        if: steps.dates.outputs.dates != ''
+
+      - uses: r-lib/actions/setup-r@v2
+        if: steps.dates.outputs.dates != ''
+        with:
+          use-public-rspm: true
+
+      - uses: r-lib/actions/setup-r-dependencies@v2
+        if: steps.dates.outputs.dates != ''
+        with:
+          packages: |
+            any::arrow
+            any::dplyr
+            any::ggplot2
+            any::knitr
+            any::lubridate
+            any::purrr
+            any::readr
+            any::rmarkdown
+
+      - name: Publish reports
+        if: steps.dates.outputs.dates != ''
+        env:
+          DATES: ${{ steps.dates.outputs.dates }}
+        run: |
+          status=0
+          for d in $DATES; do
+            FORECAST_DATE="$d" bin/publish_forecast_report.sh || status=1
+          done
+          exit $status

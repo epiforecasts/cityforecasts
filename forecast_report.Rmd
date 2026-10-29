@@ -1,0 +1,121 @@
+---
+title: "Weekly forecasts"
+output: html_document
+params:
+  forecast_date: ""
+  hub_ref: "main"
+---
+
+```{r setup, include = FALSE}
+# Report of a forecast built only from the forecast parquet in
+# output/cityforecasts/<forecast_date>/ and the hub data as of the forecast
+# date, so it can be rendered from main without the targets store (e.g. for a
+# forecast generated locally). Rendered by bin/render_forecast_report.sh.
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE)
+library(dplyr)
+library(ggplot2)
+library(lubridate)
+library(purrr)
+
+forecast_date <- ymd(params$forecast_date)
+weeks_to_show <- 13
+
+forecast_file <- list.files(
+  file.path("output", "cityforecasts", forecast_date),
+  pattern = "-epiforecasts-dyngam\\.parquet$", full.names = TRUE
+)
+stopifnot(length(forecast_file) == 1)
+forecasts <- arrow::read_parquet(forecast_file) |>
+  filter(output_type == "sample")
+
+hub_url <- paste0(
+  "https://raw.githubusercontent.com/reichlab/flu-metrocast/", params$hub_ref
+)
+locations <- readr::read_csv(
+  paste0(hub_url, "/auxiliary-data/locations.csv"),
+  show_col_types = FALSE
+)
+# Observations as they were on the forecast date, i.e. the latest vintage on
+# or before it, falling back to the earliest vintage for older forecasts
+time_series <- readr::read_csv(
+  paste0(hub_url, "/target-data/time-series.csv"),
+  show_col_types = FALSE
+)
+vintages <- unique(time_series$as_of)
+as_of_date <- if (any(vintages <= forecast_date)) {
+  max(vintages[vintages <= forecast_date])
+} else {
+  min(vintages)
+}
+observed <- time_series |>
+  filter(
+    as_of == as_of_date,
+    target_end_date >= forecast_date - weeks(weeks_to_show)
+  ) |>
+  semi_join(distinct(forecasts, location, target),
+    by = c("location", "target")
+  )
+
+# Median and 50% and 90% intervals of the samples
+summaries <- forecasts |>
+  group_by(location, target, target_end_date) |>
+  summarise(
+    median = median(value),
+    lower_50 = quantile(value, 0.25),
+    upper_50 = quantile(value, 0.75),
+    lower_90 = quantile(value, 0.05),
+    upper_90 = quantile(value, 0.95),
+    .groups = "drop"
+  )
+location_states <- locations |>
+  select(location, state) |>
+  right_join(distinct(forecasts, location), by = "location") |>
+  mutate(state = coalesce(state, "Other"))
+```
+
+Forecast date: `r forecast_date` |
+Hub data as of: `r as_of_date` |
+Locations forecast: `r n_distinct(forecasts$location)`
+
+Black: observations as of the forecast date. Blue: forecast median with 50%
+and 90% intervals.
+
+```{r, fig.width=10, fig.height=6}
+plot_state <- function(state_name) {
+  locs <- location_states$location[location_states$state == state_name]
+  p <- ggplot() +
+    geom_ribbon(
+      data = filter(summaries, location %in% locs),
+      aes(x = target_end_date, ymin = lower_90, ymax = upper_90),
+      fill = "steelblue", alpha = 0.2
+    ) +
+    geom_ribbon(
+      data = filter(summaries, location %in% locs),
+      aes(x = target_end_date, ymin = lower_50, ymax = upper_50),
+      fill = "steelblue", alpha = 0.3
+    ) +
+    geom_line(
+      data = filter(summaries, location %in% locs),
+      aes(x = target_end_date, y = median),
+      color = "steelblue"
+    ) +
+    geom_line(
+      data = filter(observed, location %in% locs),
+      aes(x = target_end_date, y = observation)
+    ) +
+    geom_point(
+      data = filter(observed, location %in% locs),
+      aes(x = target_end_date, y = observation),
+      size = 0.5
+    ) +
+    geom_vline(xintercept = forecast_date, linetype = "dashed") +
+    facet_wrap(~location, scales = "free_y") +
+    xlab("") +
+    ylab(paste(unique(forecasts$target), collapse = ", ")) +
+    ggtitle(state_name) +
+    theme_bw()
+  print(p)
+}
+
+walk(sort(unique(location_states$state)), plot_state)
+```

@@ -157,40 +157,9 @@ if [[ "$PUSH" == "1" ]]; then
   cleanup_worktree
   echo "$(date): pushed forecasts to $branch"
 
-  # Publish the report to GitHub Pages (gh-pages branch) at
-  # <date>/index.html, with an index page linking to all reports. The branch
-  # is pushed as a single commit each time so old report versions don't
-  # accumulate in the repo history.
-  worktree="$(mktemp -d)/gh-pages"
-  if git fetch -q origin gh-pages 2>/dev/null; then
-    git worktree add --detach "$worktree" FETCH_HEAD \
-      || fail "could not create worktree for gh-pages"
-  else
-    git worktree add --detach "$worktree" origin/main \
-      || fail "could not create worktree for gh-pages"
-    git -C "$worktree" rm -rqf .
-  fi
-  mkdir -p "${worktree}/${FORECAST_DATE}"
-  cp "$report" "${worktree}/${FORECAST_DATE}/index.html"
-  touch "${worktree}/.nojekyll"
-  {
-    echo '<!DOCTYPE html><html><head><meta charset="utf-8">'
-    echo '<meta name="viewport" content="width=device-width, initial-scale=1">'
-    echo '<title>cityforecasts reports</title>'
-    echo '<style>body{font-family:system-ui,sans-serif;max-width:40em;margin:2em auto;padding:0 1em;line-height:1.6}</style>'
-    echo '</head><body><h1>cityforecasts weekly reports</h1><ul>'
-    for d in $(cd "$worktree" && ls -d 20??-??-?? | sort -r); do
-      echo "<li><a href=\"${d}/\">${d}</a></li>"
-    done
-    echo '</ul></body></html>'
-  } >"${worktree}/index.html"
-  git -C "$worktree" add -A
-  pages_commit=$(git -C "$worktree" commit-tree "$(git -C "$worktree" write-tree)" \
-    -m "Reports as of ${FORECAST_DATE}") \
-    || { cleanup_worktree; fail "could not create gh-pages commit"; }
-  git -C "$worktree" push --force origin "${pages_commit}:refs/heads/gh-pages" \
-    || { cleanup_worktree; fail "git push to gh-pages failed"; }
-  cleanup_worktree
+  # Publish the report to GitHub Pages at <date>/index.html
+  bin/publish_report.sh "$FORECAST_DATE" "$report" \
+    || fail "publishing the report to GitHub Pages failed"
   echo "$(date): published report at $report_url"
   summarise "Forecasts for $FORECAST_DATE: [review report]($report_url), forecasts on branch \`$branch\`"
 
