@@ -39,6 +39,12 @@ create_config_targets <- list( # nolint
     name = forecast_horizons,
     command = 0:3
   ),
+  # Local folder holding the private California historical data, cloned
+  # alongside this repo. If it isn't there, California is skipped
+  tar_target(
+    name = ca_data_dir,
+    command = here::here("..", "flu_metrocast_california_data")
+  ),
   # Git ref (branch or commit SHA) of the flu-metrocast hub to pull data from.
   # Set via the HUB_REF env var, e.g. to a past commit SHA to reproduce the
   # data available on a past forecast date. Defaults to main.
