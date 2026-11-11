@@ -10,12 +10,23 @@ post_processing_targets <- list(
   tar_target(
     name = df_for_submission,
     # Only submit the hub's forecast horizons (relative to the reference
-    # date), e.g. not horizon -1, or -2 for delayed locations. Computed
-    # outside filter() since df_draws also has a reference_date column.
+    # date): forecast_horizons, extended back to min_horizon_by_target for
+    # targets listed there (e.g. horizon -1 for CA hospital admissions).
+    # Computed outside filter() since df_draws also has a reference_date
+    # column.
     command = {
-      submission_dates <- ymd(reference_date) + weeks(forecast_horizons)
+      ref_date <- ymd(reference_date)
+      min_horizon <- function(target) {
+        coalesce(unname(min_horizon_by_target[target]), min(forecast_horizons))
+      }
+      submission_dates <- function(target) {
+        ref_date + weeks(seq(min_horizon(target), max(forecast_horizons)))
+      }
       df_draws |>
-        filter(target_end_date %in% submission_dates) |>
+        filter(
+          target_end_date %in% submission_dates(target[1]),
+          .by = target
+        ) |>
         # Draws are shared across locations fit jointly, but the hub requires
         # each sample ID to belong to a single location (compound_taskid_set
         # is reference_date, target, location), so append a location index.
