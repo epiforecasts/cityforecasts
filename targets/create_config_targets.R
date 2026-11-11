@@ -57,10 +57,15 @@ create_config_targets <- list( # nolint
     name = locations_csv_path,
     command = file.path(hub_raw_url, "auxiliary-data", "locations.csv")
   ),
-  # This is the table of all the locations we need to forecast
+  # This is the table of all the locations we need to forecast. Sub-state
+  # locations without a code in the hub (e.g. the California regions) use
+  # their location ID, so they aren't mistaken for states (code "All")
   tar_target(
     name = location_data,
-    command = read_csv(locations_csv_path)
+    command = read_csv(locations_csv_path) |>
+      mutate(original_location_code = coalesce(
+        as.character(original_location_code), location
+      ))
   ),
   tar_target(
     name = state_codes,
