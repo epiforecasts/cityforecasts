@@ -39,11 +39,12 @@ create_config_targets <- list( # nolint
     name = forecast_horizons,
     command = 0:3
   ),
-  # Earliest horizon to submit for each target (default 0). CA hospital
-  # admissions are a week behind but the hub still accepts horizon -1 for them
+  # Earliest horizon to submit for each target. CA hospital admissions are a
+  # week behind but the hub still accepts horizon -1 for them. Targets not
+  # listed here start at min(forecast_horizons)
   tar_target(
     name = min_horizon_by_target,
-    command = c("Flu hosp admits" = -1L)
+    command = c("Flu ED visits pct" = 0L, "Flu hosp admits" = -1L)
   ),
   # Local folder holding the private California historical data, cloned
   # alongside this repo. If it isn't there, California is skipped

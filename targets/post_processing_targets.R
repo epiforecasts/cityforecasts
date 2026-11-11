@@ -10,8 +10,8 @@ post_processing_targets <- list(
   tar_target(
     name = df_for_submission,
     # Only submit the hub's forecast horizons (relative to the reference
-    # date): forecast_horizons, extended back to min_horizon_by_target for
-    # targets listed there (e.g. horizon -1 for CA hospital admissions).
+    # date): from min_horizon_by_target for each target (e.g. 0 for ED visits
+    # pct, -1 for CA hospital admissions) to max(forecast_horizons).
     # Computed outside filter() since df_draws also has a reference_date
     # column.
     command = {
