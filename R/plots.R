@@ -30,28 +30,62 @@ get_plot_data <- function(data,
   return(p)
 }
 
+#' Plot forecast draws against the observed data
+#'
+#' These plots are published in the weekly report, so the observations shown
+#' come only from the public hub data (`hub_data`, the hub's latest-data.csv),
+#' never from data used to fit the model that isn't on the hub (e.g. the
+#' private California history), and no weeks before the hub's first week for
+#' a location are shown.
+#'
+#' @param dfall Draws from `fit_ar_mod()`, with values on the model scale
+#'   (proportions for pct targets, counts otherwise).
+#' @param hub_data The hub's latest-data.csv, with observations on the hub's
+#'   scale (percentages for pct targets, counts otherwise).
 get_plot_forecasts <- function(dfall,
+                               hub_data,
                                forecast_date,
                                fp_figs,
                                calibration_days_to_show = 90) {
   sampled_draws <- sample(1:max(dfall$draw), 100)
   target <- unique(dfall$target)
   model_run_location <- unique(dfall$model_run_location)
+  # The model fits pct targets as proportions, so show them as percentages
+  # to match the hub; counts are shown as is
+  scale <- if (str_detect(target, "pct")) 100 else 1
 
-  df_recent <- dfall |> filter(
-    target_end_date >= ymd(forecast_date) - days(calibration_days_to_show)
-  )
+  hub_obs <- hub_data |>
+    filter(
+      .data$target == .env$target,
+      location %in% unique(dfall$location)
+    ) |>
+    select(location, target_end_date, hub_observation = observation)
+  hub_start <- hub_obs |>
+    summarise(hub_start = min(target_end_date), .by = location)
+
+  df_recent <- dfall |>
+    filter(
+      target_end_date >= ymd(forecast_date) - days(calibration_days_to_show)
+    ) |>
+    inner_join(hub_start, by = "location") |>
+    filter(target_end_date >= hub_start) |>
+    select(-observation) |>
+    left_join(hub_obs, by = c("location", "target_end_date"))
 
   median_df <- df_recent |>
     group_by(target_end_date, location, period) |>
-    summarise(median_pred = median(100 * value))
+    summarise(median_pred = median(scale * value), .groups = "drop")
+
+  obs_df <- df_recent |>
+    distinct(location, target_end_date, hub_observation) |>
+    filter(!is.na(hub_observation))
 
   plot_draws <- ggplot(df_recent |> filter(
     draw %in% c(sampled_draws)
   )) +
     geom_line(
       aes(
-        x = target_end_date, y = 100 * value,
+        x = target_end_date, y = scale * value,
         group = draw,
         color = period
       ),
@@ -63,13 +97,13 @@ get_plot_forecasts <- function(dfall,
       y = median_pred,
       color = period
     )) +
-    geom_line(aes(
+    geom_line(data = obs_df, aes(
       x = target_end_date,
-      y = 100 * observation
+      y = hub_observation
     )) +
-    geom_point(aes(
+    geom_point(data = obs_df, aes(
       x = target_end_date,
-      y = 100 * observation
+      y = hub_observation
     ), size = 0.5) +
     facet_wrap(~location, scales = "free_y") +
     theme_bw() +

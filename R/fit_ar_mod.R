@@ -48,7 +48,9 @@ fit_ar_mod <- function(model_data,
     level_prior <- "normal(-5.5, 1)"
     obs_family <- lognormal()
   } else {
-    # Target is not a proportion but a count -- need a Poisson observation model
+    # Target is not a proportion but a count (e.g. hospital admissions) --
+    # use a negative binomial observation model, as counts are overdispersed
+    # relative to a Poisson
 
     # Centre the level prior on log(typical count): the log of each location's
     # median count (floored at 1 to avoid log(0)), averaged across locations.
@@ -59,7 +61,7 @@ fit_ar_mod <- function(model_data,
       pull(log_median) |>
       mean()
     level_prior <- paste0("normal(", round(log_typical_count, 2), ", 2)")
-    obs_family <- poisson()
+    obs_family <- nb()
   }
 
   # The level parameters depend on whether the model is hierarchical

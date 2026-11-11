@@ -1,5 +1,8 @@
 name: Weekly forecast
 
+# The weekly run is scheduled locally (bin/install_local_schedule.sh), as it
+# needs the private California data, which isn't available here. This
+# workflow can still be run manually, but skips California.
 on:
   schedule:
     # TEMPORARY (week of 2026-11-11): run on Thursday 2026-11-12 instead of

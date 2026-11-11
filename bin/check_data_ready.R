@@ -6,17 +6,17 @@
 # either enough locations are updated (allowing a few scattered locations to
 # be missing) or only a few states have any location behind (allowing a whole
 # state to be missing, e.g. Georgia). The pipeline forecasts locations that
-# are behind from their last observation. NYC is excluded since its data is
-# routinely a week behind.
+# are behind from their last observation. NYC and California are excluded
+# since their data is routinely a week behind.
 #
 # Uses the same env vars as the targets pipeline:
 #   FORECAST_DATE (YYYY-MM-DD, defaults to the most recent Wednesday in ET)
 #   HUB_REF       (flu-metrocast git ref, defaults to main)
 # and
-#   MIN_FRAC_UPDATED  (fraction of locations, excluding NYC, that must be
+#   MIN_FRAC_UPDATED  (fraction of locations, excluding NYC and CA, that must be
 #                      updated, default 0.9)
 #   MAX_STATES_BEHIND (number of states allowed to have any location, excluding
-#                      NYC, not updated, default 2)
+#                      NYC and CA, not updated, default 2)
 # The data is treated as updated if either condition is met.
 #
 # Exit codes:
@@ -38,7 +38,6 @@ forecast_date <- ymd(Sys.getenv(
 hub_ref <- Sys.getenv("HUB_REF", unset = "main")
 min_frac_updated <- as.numeric(Sys.getenv("MIN_FRAC_UPDATED", unset = "0.9"))
 max_states_behind <- as.integer(Sys.getenv("MAX_STATES_BEHIND", unset = "2"))
-delayed_locations <- "nyc"
 
 if (wday(forecast_date, week_start = 1) != 3) {
   message("Forecast date ", forecast_date, " is not a Wednesday")
@@ -51,6 +50,7 @@ hub_url <- paste0(
 )
 latest_data <- read.csv(paste0(hub_url, "/target-data/latest-data.csv"))
 locations <- read.csv(paste0(hub_url, "/auxiliary-data/locations.csv"))
+delayed_locations <- c("nyc", locations$location[locations$state_abb == "CA"])
 location_max <- tapply(
   ymd(latest_data$target_end_date), latest_data$location, max
 )
@@ -72,7 +72,7 @@ message(
   " | expected max target_end_date: ", expected_date,
   " | observed: ", max_date,
   " | locations updated: ", sum(updated), "/", length(updated),
-  " (excluding ", paste(delayed_locations, collapse = ", "),
+  " (excluding NYC and California",
   "; need ", round(100 * min_frac_updated), "%)",
   " | states behind: ", length(states_behind), "/", length(unique(state)),
   " (allowed: ", max_states_behind, ")"

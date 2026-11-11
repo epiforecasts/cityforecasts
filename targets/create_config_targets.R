@@ -39,6 +39,19 @@ create_config_targets <- list( # nolint
     name = forecast_horizons,
     command = 0:3
   ),
+  # Earliest horizon to submit for each target. CA hospital admissions are a
+  # week behind but the hub still accepts horizon -1 for them. Targets not
+  # listed here start at min(forecast_horizons)
+  tar_target(
+    name = min_horizon_by_target,
+    command = c("Flu ED visits pct" = 0L, "Flu hosp admits" = -1L)
+  ),
+  # Local folder holding the private California historical data, cloned
+  # alongside this repo. If it isn't there, California is skipped
+  tar_target(
+    name = ca_data_dir,
+    command = here::here("..", "flu_metrocast_california_data")
+  ),
   # Git ref (branch or commit SHA) of the flu-metrocast hub to pull data from.
   # Set via the HUB_REF env var, e.g. to a past commit SHA to reproduce the
   # data available on a past forecast date. Defaults to main.
@@ -57,10 +70,15 @@ create_config_targets <- list( # nolint
     name = locations_csv_path,
     command = file.path(hub_raw_url, "auxiliary-data", "locations.csv")
   ),
-  # This is the table of all the locations we need to forecast
+  # This is the table of all the locations we need to forecast. Sub-state
+  # locations without a code in the hub (e.g. the California regions) use
+  # their location ID, so they aren't mistaken for states (code "All")
   tar_target(
     name = location_data,
-    command = read_csv(locations_csv_path)
+    command = read_csv(locations_csv_path) |>
+      mutate(original_location_code = coalesce(
+        as.character(original_location_code), location
+      ))
   ),
   tar_target(
     name = state_codes,

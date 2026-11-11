@@ -13,6 +13,7 @@ fit_model_targets <- list(
     name = plot_forecast_draws,
     command = get_plot_forecasts(
       dfall = model_draws,
+      hub_data = hub_data,
       forecast_date = forecast_date,
       fp_figs = file.path("output", "figures")
     ),
