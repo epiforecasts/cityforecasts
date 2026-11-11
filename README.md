@@ -34,7 +34,7 @@ Step 3 is automated too, but only runs once a person has reviewed the forecasts.
 ### California data
 
 California's historical data is private and isn't in this repository or on the hub.
-It is read from a local clone of the [cdphmodeling/flu_metrocast_california_data](https://github.com/cdphmodeling/flu_metrocast_california_data) repository (private), which must sit next to this repository:
+It is read from the California data folder, `flu_metrocast_california_data`, which must sit next to this repository:
 
 ```
 github_repos/
