@@ -1,10 +1,9 @@
 name: Weekly forecast
 
+# The weekly run is scheduled locally (bin/install_local_schedule.sh), as it
+# needs the private California data, which isn't available here. This
+# workflow can still be run manually, but skips California.
 on:
-  schedule:
-    # 20:00 UTC on Wednesdays = 4:00 PM EDT / 3:00 PM EST. The run polls until
-    # the hub data is updated for the forecast date (up to MAX_WAIT).
-    - cron: "0 20 * * 3"
   workflow_dispatch:
     inputs:
       forecast_date:
