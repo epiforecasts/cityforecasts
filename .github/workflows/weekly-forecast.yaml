@@ -4,13 +4,6 @@ name: Weekly forecast
 # needs the private California data, which isn't available here. This
 # workflow can still be run manually, but skips California.
 on:
-  schedule:
-    # TEMPORARY (week of 2026-11-11): run on Thursday 2026-11-12 instead of
-    # Wednesday. The forecast date still defaults to the most recent Wednesday
-    # (2026-11-11). Revert to "0 20 * * 3" after Thursday's run.
-    # 20:00 UTC = 3:00 PM EST. The run polls until the hub data is updated for
-    # the forecast date (up to MAX_WAIT).
-    - cron: "0 20 * * 4"
   workflow_dispatch:
     inputs:
       forecast_date:
