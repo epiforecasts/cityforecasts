@@ -46,7 +46,9 @@ notify() {
   rm -rf "$WORKTREE/_targets"
   echo "$(date): at origin/main $(git -C "$WORKTREE" rev-parse --short HEAD)"
 
-  MAX_WAIT="${MAX_WAIT:-14400}" "$WORKTREE/bin/run_weekly_forecast.sh"
+  # Keep checking for updated hub data every 10 minutes for up to 6 hours,
+  # i.e. until midnight for the default 18:00 start
+  MAX_WAIT="${MAX_WAIT:-21600}" "$WORKTREE/bin/run_weekly_forecast.sh"
 } >"$log" 2>&1
 status=$?
 
