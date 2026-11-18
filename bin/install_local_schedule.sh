@@ -69,6 +69,7 @@ cat >"$PLIST" <<EOF
   <string>${LABEL}</string>
   <key>ProgramArguments</key>
   <array>
+    <string>/bin/bash</string>
     <string>${RUNNER}</string>
   </array>
   <key>StartCalendarInterval</key>
