@@ -60,11 +60,6 @@ path="${path}:/usr/local/bin:/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin"
 mkdir -p "$(dirname "$PLIST")" "$REPO_DIR/logs" "$RUNNER_DIR"
 cp "$REPO_DIR/bin/scheduled_local_run.sh" "$RUNNER"
 chmod +x "$RUNNER"
-# The job starts /bin/bash directly (rather than the script, whose
-# "#!/usr/bin/env bash" line would make launchd start /usr/bin/env), as macOS
-# checks the program launchd starts for access to protected folders such as
-# ~/Documents: give /bin/bash Full Disk Access in System Settings > Privacy &
-# Security if the repo is in one
 cat >"$PLIST" <<EOF
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
