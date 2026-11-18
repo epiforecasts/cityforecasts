@@ -97,6 +97,9 @@ To set up the schedule (once):
 bin/install_local_schedule.sh
 ```
 
+If the repository is in a folder macOS protects, such as `~/Documents`, `~/Desktop` or `~/Downloads`, also give `/bin/bash` Full Disk Access (System Settings → Privacy & Security → Full Disk Access → **+**, then press ⌘⇧G and enter `/bin/bash`).
+The scheduled job runs as `/bin/bash`, and without this macOS blocks it from reading the repository (the log shows `Operation not permitted`).
+
 At the scheduled time, `bin/scheduled_local_run.sh` runs. It:
 
 1. resets a separate copy of this repository, `../cityforecasts-scheduled` (a git worktree), to the latest `origin/main`, so the merged code is always used, whatever branch or uncommitted changes you have in your own copy;
