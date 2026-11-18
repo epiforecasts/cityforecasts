@@ -9,8 +9,9 @@
 #
 #   weekday  day of the week to run, e.g. wednesday (default) or thursday
 #   hour     hour of the day to run, in the Mac's local time zone (default
-#            20, i.e. 20:00 UK time = 3 PM US Eastern, as the UK and US
-#            change clocks within a few weeks of each other)
+#            18, i.e. 18:00 UK time = 1 PM US Eastern, as the UK and US
+#            change clocks within a few weeks of each other; the run then
+#            keeps checking for updated hub data, see scheduled_local_run.sh)
 #
 # Rerun with a different weekday to change the schedule, e.g. to move a single
 # week to Thursday and back again afterwards.
@@ -37,7 +38,7 @@ if [[ "${1:-}" == "--uninstall" ]]; then
 fi
 
 weekday_name=$(echo "${1:-wednesday}" | tr '[:upper:]' '[:lower:]')
-hour="${2:-20}"
+hour="${2:-18}"
 case "$weekday_name" in
   sunday) weekday=0 ;;
   monday) weekday=1 ;;

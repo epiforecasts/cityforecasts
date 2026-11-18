@@ -86,7 +86,9 @@ To only run the pipeline, without waiting for data or pushing anything, start R 
 
 ### Weekly schedule
 
-The weekly forecast runs automatically on a Mac using launchd (macOS's built-in scheduler), by default every **Wednesday at 20:00 UK time (3 PM US Eastern)**.
+The weekly forecast runs automatically on a Mac using launchd (macOS's built-in scheduler), by default every **Wednesday at 18:00 UK time (1 PM US Eastern)**.
+The hub data is usually updated later in the afternoon US time, so the run keeps checking for it every 10 minutes until it arrives, for up to 6 hours (until midnight UK time).
+The Mac only needs to be open and connected at 18:00 and while the run is going.
 It runs in GitHub Actions, as it used to, only if started manually: it can't access the California data, so it skips California.
 
 To set up the schedule (once):
@@ -98,20 +100,20 @@ bin/install_local_schedule.sh
 At the scheduled time, `bin/scheduled_local_run.sh` runs. It:
 
 1. resets a separate copy of this repository, `../cityforecasts-scheduled` (a git worktree), to the latest `origin/main`, so the merged code is always used, whatever branch or uncommitted changes you have in your own copy;
-2. runs `bin/run_weekly_forecast.sh` there (waiting up to 4 hours for the hub data);
+2. runs `bin/run_weekly_forecast.sh` there (checking for updated hub data every 10 minutes, for up to 6 hours);
 3. writes a log to `logs/scheduled_{timestamp}.log` and shows a notification when it has finished or failed.
 
 If the Mac is asleep at the scheduled time, the run starts as soon as it wakes. If it is shut down, that week's run is skipped, so run `bin/scheduled_local_run.sh` by hand instead.
 
-The hour is in the Mac's local time zone: 20:00 in the UK is 3 PM US Eastern for most of the year, but an hour off for the few weeks in spring and autumn when only one of the two has changed its clocks (the run still waits for the data).
-On a Mac in another time zone, pass the local hour, e.g. `bin/install_local_schedule.sh wednesday 15` for US Eastern.
+The hour is in the Mac's local time zone: 18:00 in the UK is 1 PM US Eastern for most of the year, but an hour off for the few weeks in spring and autumn when only one of the two has changed its clocks (the run still waits for the data).
+On a Mac in another time zone, pass the local hour, e.g. `bin/install_local_schedule.sh wednesday 13` for US Eastern.
 
 Useful commands:
 
 | To… | Run |
 |---|---|
 | Move the run to another day, e.g. Thursday for one week | `bin/install_local_schedule.sh thursday` |
-| Go back to Wednesdays at 20:00 | `bin/install_local_schedule.sh` |
+| Go back to Wednesdays at 18:00 | `bin/install_local_schedule.sh` |
 | Run the scheduled job now | `launchctl kickstart gui/$(id -u)/io.epiforecasts.cityforecasts.weekly` |
 | Do exactly what the scheduled job does, by hand | `bin/scheduled_local_run.sh` |
 | Check the schedule | `launchctl print gui/$(id -u)/io.epiforecasts.cityforecasts.weekly \| grep -A4 descriptor` |
