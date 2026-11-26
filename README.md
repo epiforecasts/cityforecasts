@@ -142,17 +142,21 @@ $$
 y_{l,t} \sim NegBinomial(exp(x_{l,t}), \phi_l)
 $$
 
-For the forecasts of the percent of ED visits due to flu, we assume a lognormal observation process on the proportion of ED visits due to flu:
+For the forecasts of the percent of ED visits due to flu, we assume a lognormal observation process on the proportion of ED visits due to flu, shifted by a per-location constant $c_l$:
 
 ```math
 \begin{align}
 p_{l,t} = y_{l,t} \times 100 \\
-log(y_{l,t}) \sim Normal(x_{l,t}, \sigma_{obs,l})
+log(y_{l,t} + c_l) \sim Normal(x_{l,t}, \sigma_{obs,l})
 \end{align}
 ```
 
 The lognormal assumes constant relative (multiplicative) observation noise, so that changes at low proportions (e.g. early-season upticks) are attributed to the latent state rather than treated as noise, as a Beta observation model with constant precision does.
-Because the reported proportions are rounded to 0.0001, observed zeros (true value < 0.00005) are replaced with 0.00005 before fitting.
+The lognormal can't take zeros, so it is fit to the observed proportion plus $c_l$, and $c_l$ is subtracted from the forecast draws afterwards (floored at 0, so forecasts can be exactly zero).
+$c_l$ is half the location's smallest non-zero observed proportion (or 0.00005, half the 0.0001 reporting resolution, if a location has no non-zero observations).
+In small locations a zero usually means no flu visits among few ED visits, so the smallest non-zero value (a single visit) can be well above zero (e.g. ~1% in San Juan County, UT).
+Previously zeros were replaced with 0.00005, which for these locations sat 2-5 units below the rest of the data on the log scale. The model could only fit that with a large observation SD, giving implausibly wide upper tails, with some draws above 100% ([#110](https://github.com/epiforecasts/cityforecasts/issues/110)).
+In a backtest on last season (`scratch/backtest_models.R`), the shift narrowed the upper tails and improved CRPS in locations with zeros. It did better than replacing zeros with $c_l$ alone, as it can forecast the zeros that small locations report.
 
 ### Latent state-space model: Dynamic hierarchical GAM with independent autoregression
 We model the latent state with a hierarchical GAM component to capture shared seasonality and a univariate autoregressive component to capture deviations from the seasonal pattern within each location.

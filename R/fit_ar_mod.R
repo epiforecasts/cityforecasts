@@ -37,11 +37,18 @@ fit_ar_mod <- function(model_data,
   }
 
 
+  # Per-location shift added to the observations before fitting and
+  # subtracted from the predictions after (pct targets only)
+  shift <- NULL
   if (str_detect(target, "pct")) {
-    # Lognormal can't take zeros. Data are rounded to 0.0001, so a zero means
-    # < 0.00005: replace with half the reporting resolution
+    # Lognormal can't take zeros, so fit it to observation + c, with c a
+    # per-location shift (see zero_shift()). The saved model is therefore
+    # fit to the shifted data
+    shift <- zero_shift(model_data_fit)
     model_data_fit <- model_data_fit |>
-      mutate(observation = ifelse(observation == 0, 0.00005, observation))
+      left_join(shift, by = "location") |>
+      mutate(observation = observation + shift) |>
+      select(-shift)
 
     # Centre the level prior on the typical log proportion (mean
     # log(observation) across pct locations is ~ -5.5)
@@ -124,6 +131,42 @@ fit_ar_mod <- function(model_data,
       target = target
     )
 
+  # Undo the shift: y = (y + c) - c, floored at 0 so draws can be exactly 0.
+  # `observation` comes from the unshifted model_data, so only `value` changes
+  if (!is.null(shift)) {
+    dfall <- dfall |>
+      left_join(shift, by = "location") |>
+      mutate(value = pmax(value - shift, 0)) |>
+      select(-shift)
+  }
+
 
   return(dfall)
+}
+
+#' Per-location shift for fitting a lognormal to data with zeros
+#'
+#' The lognormal can't take zeros, so it is fit to observation + c and c is
+#' subtracted from the predictions. In small locations a zero usually means no
+#' flu visits among few ED visits, so the smallest non-zero value (one visit)
+#' is far above zero. Replacing zeros with a fixed tiny value (previously
+#' 0.00005) sits several units below the rest of the data on the log scale,
+#' which inflates the observation SD and gives implausibly wide upper tails
+#' (#110). c is half the location's smallest non-zero observation, or 0.00005
+#' (half the 0.0001 reporting resolution) if it has no non-zero observations.
+#'
+#' @param data Data frame with `location` and `observation` columns
+#' @return Data frame with one row per location and columns `location` and
+#'   `shift`
+zero_shift <- function(data) {
+  data |>
+    group_by(location) |>
+    summarise(
+      shift = if (any(observation > 0, na.rm = TRUE)) {
+        min(observation[observation > 0], na.rm = TRUE) / 2
+      } else {
+        0.00005
+      },
+      .groups = "drop"
+    )
 }

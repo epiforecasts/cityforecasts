@@ -1,8 +1,13 @@
 # Backtest the original model (beta, AR1 ~ N(0.5, 0.25)) against the updated
 # model (lognormal, AR1 ~ N(0.9, 0.1), level priors) on pct data from last
-# season. For each location group and forecast date, the data are truncated at
-# the forecast date, both models are fit, and the 4-week-ahead forecast draws
-# are compared with what was later observed.
+# season. Also compares ways of handling zeros (#110) on the lognormal AR1
+# model, including location groups with many zeros: the fixed floor (0.00005,
+# the production model before #110), a per-location floor (half the
+# location's smallest non-zero value) and a per-location shift (lognormal on
+# y + c, `zero_shift()` in R/fit_ar_mod.R, the production model since #110).
+# For each location group and forecast date, the data are truncated at the
+# forecast date, the models are fit, and the 4-week-ahead forecast draws are
+# compared with what was later observed.
 #
 # Caveat: truncation uses the current (final) data, so this ignores any
 # reporting revisions/backfill that would have been present in real time.
@@ -13,12 +18,22 @@ library(mvgam)
 library(scoringutils)
 
 tar_load(model_data_grouped)
+source("R/fit_ar_mod.R")
 
 # ---- Settings ----------------------------------------------------------------
 
-# Location groups (model_run_location) to backtest: one single-location model
-# and several multi-location hierarchical models
+# Location groups (model_run_location) to backtest with every model: one
+# single-location model and several multi-location hierarchical models
 groups <- c("NY", "MA", "TX", "CO")
+
+# Groups with many zeros in small locations, backtested only with the models
+# comparing ways of handling zeros (#110)
+zero_groups <- c("UT", "MN", "OR")
+zero_floor_models <- c("ln_ar1_05", "ln_ar1_05_locfloor", "ln_ar1_05_shift")
+
+# Model that CRPS ratios are relative to: the production model before #110,
+# which every group is fit with
+baseline_model <- "ln_ar1_05"
 
 # Date of the last observation used to fit each backtest, spanning last
 # season's onset, growth, peak, decline and spring wave
@@ -71,12 +86,44 @@ fit_original <- function(data, newdata) {
   )
 }
 
-# Lognormal model, as in scratch/adjust_model.R, with the AR order and AR
-# priors as arguments
-fit_lognormal <- function(data, newdata, p, ar_priors, ...) {
-  # Data are rounded to 0.0001, so a zero means < 0.00005
-  data <- data |>
-    mutate(observation = ifelse(observation == 0, 0.00005, observation))
+# Replace zeros with half the location's smallest non-zero observation
+# (0.00005 if it has none), using the same value as the shift in
+# `zero_shift()` (R/fit_ar_mod.R). This was the first fix tried for #110,
+# before switching to the shift
+floor_zeros <- function(data) {
+  data |>
+    left_join(zero_shift(data), by = "location") |>
+    mutate(observation = ifelse(observation == 0, shift, observation)) |>
+    select(-shift)
+}
+
+# Lognormal model, as in scratch/adjust_model.R, with the AR order, AR
+# priors and zero handling as arguments:
+# - "fixed": replace zeros with 0.00005 (data are rounded to 0.0001, so a
+#   zero means < 0.00005)
+# - "per_location": replace zeros with half the location's smallest non-zero
+#   value in the training data (`floor_zeros()`)
+# - "shift": add that same per-location value `c` (`zero_shift()`, as in
+#   production since #110) to every observation, so the model is lognormal on
+#   y + c. The shifts are attached to the fit as
+#   attr "shift" and subtracted from the forecast draws in run_backtest()
+fit_lognormal <- function(data, newdata, p, ar_priors,
+                          zero_floor = c("fixed", "per_location", "shift"),
+                          ...) {
+  zero_floor <- match.arg(zero_floor)
+  shift <- NULL
+  if (zero_floor == "fixed") {
+    data <- data |>
+      mutate(observation = ifelse(observation == 0, 0.00005, observation))
+  } else if (zero_floor == "per_location") {
+    data <- floor_zeros(data)
+  } else {
+    shift <- zero_shift(data)
+    data <- data |>
+      left_join(shift, by = "location") |>
+      mutate(observation = observation + shift) |>
+      select(-shift)
+  }
   if (nlevels(data$series) > 1) {
     level_priors <- c(
       prior(normal(-5.5, 1), class = mu_raw_trend),
@@ -101,7 +148,8 @@ fit_lognormal <- function(data, newdata, p, ar_priors, ...) {
     family = lognormal(),
     silent = 2,
     ...
-  )
+  ) |>
+    structure(shift = shift)
 }
 
 models <- list(
@@ -114,6 +162,16 @@ models <- list(
   ln_ar1_05 = \(data, newdata) fit_lognormal(data, newdata, p = 1, c(
     prior(normal(0.5, 0.25), class = ar1, lb = 0, ub = 1)
   )),
+  # As ln_ar1_05 (the current production model), with the per-location zero
+  # floor (#110)
+  ln_ar1_05_locfloor = \(data, newdata) fit_lognormal(data, newdata, p = 1, c(
+    prior(normal(0.5, 0.25), class = ar1, lb = 0, ub = 1)
+  ), zero_floor = "per_location"),
+  # As ln_ar1_05, lognormal on y + c with c the per-location value above,
+  # then c subtracted from the draws (floored at 0), so forecasts can be zero
+  ln_ar1_05_shift = \(data, newdata) fit_lognormal(data, newdata, p = 1, c(
+    prior(normal(0.5, 0.25), class = ar1, lb = 0, ub = 1)
+  ), zero_floor = "shift"),
   # Lognormal, AR2 with the original prior on ar1. With ar1 <= 1 the process
   # can't extrapolate a trend (momentum needs ar1 ~ 2, ar2 ~ -1)
   ln_ar2_05 = \(data, newdata) fit_lognormal(data, newdata, p = 2, c(
@@ -160,7 +218,15 @@ run_backtest <- function(group, forecast_date, model_name) {
       pivot_longer(-draw, names_to = "target_end_date", values_to = "predicted") |>
       mutate(target_end_date = ymd(target_end_date), location = loc)
   }) |>
-    list_rbind() |>
+    list_rbind()
+  # Shifted lognormal: undo the shift (y = (y + c) - c), flooring at 0
+  if (!is.null(attr(fit, "shift"))) {
+    draws <- draws |>
+      left_join(attr(fit, "shift"), by = "location") |>
+      mutate(predicted = pmax(predicted - shift, 0)) |>
+      select(-shift)
+  }
+  draws <- draws |>
     left_join(
       test |> select(location, target_end_date, observed = observation),
       by = c("location", "target_end_date")
@@ -176,13 +242,21 @@ run_backtest <- function(group, forecast_date, model_name) {
   ar_vars <- intersect(c("ar1[1]", "ar2[1]"), variables(fit)$trend_pars$orig_name)
   ar_post <- as.data.frame(fit, variable = ar_vars) |>
     summarise(across(everything(), median))
+  # Largest posterior median observation SD across locations (lognormal only;
+  # zeros inflate it, #110)
+  sigma_obs_max <- if (fit$family == "lognormal") {
+    max(apply(as.data.frame(fit, variable = "sigma_obs", regex = TRUE), 2, median))
+  } else {
+    NA_real_
+  }
 
   n_div <- sum(rstan::get_divergent_iterations(fit$model_output))
   list(draws = draws, diagnostics = tibble(
     group = group, forecast_date = forecast_date, model = model_name,
     divergences = n_div,
     ar1 = ar_post[["ar1[1]"]],
-    ar2 = if ("ar2[1]" %in% names(ar_post)) ar_post[["ar2[1]"]] else NA_real_
+    ar2 = if ("ar2[1]" %in% names(ar_post)) ar_post[["ar2[1]"]] else NA_real_,
+    sigma_obs_max = sigma_obs_max
   ))
 }
 
@@ -191,15 +265,27 @@ run_backtest <- function(group, forecast_date, model_name) {
 fits_dir <- file.path(out_dir, "fits")
 dir_create(fits_dir)
 
-runs <- expand_grid(
-  group = groups,
-  forecast_date = forecast_dates,
-  model_name = names(models)
+runs <- bind_rows(
+  expand_grid(
+    group = groups,
+    forecast_date = forecast_dates,
+    model_name = names(models)
+  ),
+  expand_grid(
+    group = zero_groups,
+    forecast_date = forecast_dates,
+    model_name = zero_floor_models
+  )
 )
 results <- pmap(runs, \(group, forecast_date, model_name) {
   f <- file.path(fits_dir, paste0(group, "_", forecast_date, "_", model_name, ".rds"))
   if (!file.exists(f)) saveRDS(run_backtest(group, forecast_date, model_name), f)
-  readRDS(f)
+  out <- readRDS(f)
+  # Fits cached before sigma_obs_max was recorded
+  if (!"sigma_obs_max" %in% names(out$diagnostics)) {
+    out$diagnostics$sigma_obs_max <- NA_real_
+  }
+  out
 })
 draws <- map(results, "draws") |>
   list_rbind() |>
@@ -239,16 +325,16 @@ coverage <- draws |>
   ) |>
   mutate(forecast_date = as.character(forecast_date), model = as.character(model))
 
-# Mean CRPS (and its ratio to the original model) and interval coverage for
+# Mean CRPS (and its ratio to the baseline model) and interval coverage for
 # each model, summarised over the `by` columns
 score_summary <- function(by) {
   crps <- scores |>
     group_by(across(all_of(c("model", "scale", by)))) |>
     summarise(crps = mean(crps), .groups = "drop") |>
     group_by(across(all_of(c("scale", by)))) |>
-    mutate(crps_ratio_vs_original = crps / crps[model == "original"]) |>
+    mutate(crps_ratio_vs_baseline = crps / crps[model == baseline_model]) |>
     ungroup() |>
-    pivot_wider(names_from = scale, values_from = c(crps, crps_ratio_vs_original))
+    pivot_wider(names_from = scale, values_from = c(crps, crps_ratio_vs_baseline))
   cov <- coverage |>
     group_by(across(all_of(c("model", by)))) |>
     summarise(across(c(cov_50, cov_90), mean), .groups = "drop")
@@ -259,20 +345,43 @@ score_summary <- function(by) {
 
 overall <- score_summary(character())
 by_group <- score_summary("group")
+# Fixed vs per-location zero floor, over the groups both were fit on, with
+# the largest upper tails (99th percentile of the draws) as a check on #110
+zero_floor_comparison <- score_summary("group") |>
+  filter(model %in% zero_floor_models) |>
+  left_join(
+    draws |>
+      filter(model %in% zero_floor_models) |>
+      group_by(group, model, location, forecast_date, target_end_date) |>
+      summarise(
+        q99 = quantile(predicted, 0.99),
+        n_over_50pct = sum(predicted > 0.5),
+        .groups = "drop"
+      ) |>
+      group_by(group, model) |>
+      summarise(
+        q99_max_pct = 100 * max(q99),
+        n_draws_over_50pct = sum(n_over_50pct),
+        .groups = "drop"
+      ),
+    by = c("group", "model")
+  )
 by_group_date <- score_summary(c("group", "forecast_date"))
 write_csv(overall, file.path(out_dir, "scores_overall.csv"))
 write_csv(by_group, file.path(out_dir, "scores_by_group.csv"))
 write_csv(by_group_date, file.path(out_dir, "scores_by_group_date.csv"))
 write_csv(diagnostics, file.path(out_dir, "diagnostics.csv"))
+write_csv(zero_floor_comparison, file.path(out_dir, "zero_floor_comparison.csv"))
 
 print(diagnostics, n = Inf)
 print(overall, width = Inf)
 print(by_group, width = Inf)
-# Log-scale CRPS ratio vs original for each group and forecast date
+print(zero_floor_comparison, n = Inf, width = Inf)
+# Log-scale CRPS ratio vs baseline for each group and forecast date
 print(
   by_group_date |>
-    select(group, forecast_date, model, crps_ratio_vs_original_log) |>
-    pivot_wider(names_from = model, values_from = crps_ratio_vs_original_log),
+    select(group, forecast_date, model, crps_ratio_vs_baseline_log) |>
+    pivot_wider(names_from = model, values_from = crps_ratio_vs_baseline_log),
   n = Inf, width = Inf
 )
 
@@ -280,11 +389,14 @@ print(
 
 model_colours <- c(
   original = "#2a78d6", updated = "#eb6834", ln_ar1_05 = "#1baf7a",
-  ln_ar2_05 = "#eda100", ln_ar2_mom = "#e87ba4"
+  ln_ar2_05 = "#eda100", ln_ar2_mom = "#e87ba4",
+  ln_ar1_05_locfloor = "#7b5cd6", ln_ar1_05_shift = "#8a6b2e"
 )
 
 plot_backtest <- function(grp, log_y = FALSE) {
-  d <- draws |> filter(group == grp)
+  d <- draws |>
+    filter(group == grp) |>
+    mutate(model = droplevels(model))
   sampled <- sample(unique(d$draw), min(n_draws_plot, n_distinct(d$draw)))
   observed <- model_data_grouped |>
     filter(
@@ -344,14 +456,15 @@ plot_backtest <- function(grp, log_y = FALSE) {
   p
 }
 
-for (grp in groups) {
+for (grp in c(groups, zero_groups)) {
   n_loc <- n_distinct(draws$location[draws$group == grp])
+  n_mod <- n_distinct(draws$model[draws$group == grp])
   ggsave(file.path(out_dir, paste0("backtest_", grp, ".png")),
     plot_backtest(grp),
-    width = 3 * length(models) + 1, height = 1.8 * n_loc + 1.5
+    width = 3 * n_mod + 1, height = 1.8 * n_loc + 1.5, limitsize = FALSE
   )
   ggsave(file.path(out_dir, paste0("backtest_", grp, "_log.png")),
     plot_backtest(grp, log_y = TRUE),
-    width = 3 * length(models) + 1, height = 1.8 * n_loc + 1.5
+    width = 3 * n_mod + 1, height = 1.8 * n_loc + 1.5, limitsize = FALSE
   )
 }
